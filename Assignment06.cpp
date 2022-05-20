@@ -3115,7 +3115,7 @@ private:
 		static int index_point = 0;
 		static float a_of_parabola = -1;
 		static float delta_a_of_parabola = 0.025;
-		static int n_of_points_per_unit_of_measure = 100;
+		static int n_of_points_per_unit_of_measure = 1000;
 		
 
 
@@ -3231,6 +3231,7 @@ private:
 			if(index_point < number_of_points) {
 
 				axis_of_rotation = glm::cross(parabola.trajectory[index_point].tangent, uy);
+				rot_mat = glm::rotate(glm::mat4(1), glm::radians(2.0f), uy);
 
 				RobotPos = parabola.trajectory[index_point].pos;
 
@@ -3245,7 +3246,7 @@ private:
 				destination_set = false;
 				source_set = false;
 				parabola_created = false;
-				printf("\nDistanza percorsa %f  Speed media: %f \n", parabola.approx_arc_length, parabola.approx_arc_length / time);
+				printf("\nDistanza percorsa %f", parabola.approx_arc_length);
 				printf("\nAngolo (in gradi):\nPartenza: %f\nArrivo: %f\n", glm::degrees(parabola.trajectory[index_point].angle), glm::degrees(parabola.trajectory[number_of_points - 1].angle));
 			}
 		}
