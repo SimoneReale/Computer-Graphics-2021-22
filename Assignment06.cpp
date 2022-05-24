@@ -261,10 +261,10 @@ struct Model {
 };
 
 const std::vector<Model> SceneToLoad = {
-	{"floor.obj", "MapSciFi1024.png", {0,0,0}, 1, Flat},
-	{"Walls.obj", "Colors.png", {0,0,0}, 1, Flat},
-	{"Character.obj", "Colors2.png", {0,0,0}, 1, Flat},
-	{"Walls.obj", "Colors.png", {0,0,0}, 1, Wire},
+	{"floor.obj", "MapSciFi1024.png", {0,0,0}, 4, Flat},
+	{"Walls.obj", "Colors.png", {0,0,0}, 0.001, Flat},
+	{"Character.obj", "Colors2.png", {0,0,0}, 0.01, Flat},
+	{"Walls.obj", "Colors.png", {0,0,0}, 0.001, Wire},
 	{"pyramid.obj", "whatever.png", {0,0,0}, 0.3, Wire}
 };
 
@@ -708,10 +708,10 @@ private:
 	
 
 	// Robot Pos
-	glm::vec3 RobotPos = glm::vec3(3,0,2);
+	glm::vec3 RobotPos = glm::vec3(3,3,2);
 	glm::vec3 RobotCamDeltaPos = glm::vec3(0.0f, 0.335f, -0.0f);
 	glm::vec3 FollowerDeltaTarget = glm::vec3(0.0f, 0.335f, 0.0f);
-	float followerDist = 6;
+	float followerDist = 0.5;
 	float lookYaw = 0.0;
 	float lookPitch = 0.0;
 	float lookRoll = 0.0;
