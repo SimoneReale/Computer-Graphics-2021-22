@@ -66,10 +66,13 @@ typedef struct Trajectory {
 
 	float approx_arc_length;
 
+	glm::vec3 proj_direction_on_xz;
 
-	Trajectory(std::vector<Trajectory_Point> init_trajectory) {
+
+	Trajectory(std::vector<Trajectory_Point> init_trajectory, glm::vec3 init_proj_direction_on_xz) {
 
 		trajectory = init_trajectory;
+		proj_direction_on_xz = init_proj_direction_on_xz;
 		approx_arc_length = 0;
 
 		for (int i = 0; i < trajectory.size() - 1; i++) {
@@ -81,9 +84,10 @@ typedef struct Trajectory {
 	}
 
 
-	Trajectory(std::vector<Trajectory_Point> init_trajectory, float init_approx_arc_length) {
+	Trajectory(std::vector<Trajectory_Point> init_trajectory, float init_approx_arc_length, glm::vec3 init_proj_direction_on_xz) {
 
 		trajectory = init_trajectory;
+		proj_direction_on_xz = init_proj_direction_on_xz;
 		approx_arc_length = init_approx_arc_length;
 
 	}
@@ -92,7 +96,7 @@ typedef struct Trajectory {
 
 
 	void printTrajectoryInfo() {
-		printf("\nTrajectory info:\nApprox arc length: %f\n", approx_arc_length);
+		printf("\nTrajectory info:\nApprox arc length: %f\nDirection on xz: (%f, %f, %f)\n", approx_arc_length, proj_direction_on_xz.x, proj_direction_on_xz.y, proj_direction_on_xz.z);
 
 		int count = 0;
 		for (Trajectory_Point p : trajectory) {
@@ -125,8 +129,9 @@ Trajectory transformTrajectory(Trajectory old_trajectory, glm::mat4 mat_trans) {
 
 	}
 
+	glm::vec3 newProjected_on_xz_direction = (mat_trans * glm::vec4(old_trajectory.proj_direction_on_xz, 1)).xyz;
 
-	return Trajectory(newTrajectory, old_trajectory.approx_arc_length);
+	return Trajectory(newTrajectory, old_trajectory.approx_arc_length, newProjected_on_xz_direction);
 
 }
 
@@ -203,7 +208,7 @@ Trajectory calculateTrajectory(glm::vec3 source_point, glm::vec3 destination_poi
 
 	}
 
-	Trajectory newTrajectory_on_xy = Trajectory(trajectory_points_vec_on_xy);
+	Trajectory newTrajectory_on_xy = Trajectory(trajectory_points_vec_on_xy, proj_norm_dest_trans);
 
 	return transformTrajectory(newTrajectory_on_xy, inverse_trans_mat);
 
@@ -3112,10 +3117,12 @@ private:
 		static glm::vec3 source_point = glm::vec3(2, 0, 0);
 		static glm::vec3 destination_point = glm::vec3(0, 0, 0);
 		static int number_of_points = 50;
+		static int init_num_of_points = 3;
 		static int index_point = 0;
 		static float a_of_parabola = -1;
 		static float delta_a_of_parabola = 0.025;
-		static int n_of_points_per_unit_of_measure = 1000;
+		static int n_of_points_per_unit_of_measure = 100;
+		static float regularization_parabola_points = 1;
 		
 
 
@@ -3148,9 +3155,11 @@ private:
 					
 					source_set = true;
 
-					number_of_points = int(glm::length(destination_point - source_point) * n_of_points_per_unit_of_measure);
+					parabola = calculateTrajectory(source_point, destination_point, a_of_parabola, init_num_of_points);
+
+					number_of_points = int((glm::length(destination_point - source_point) * n_of_points_per_unit_of_measure) * (1 + sin(parabola.trajectory[0].angle)));
 					parabola = calculateTrajectory(source_point, destination_point, a_of_parabola, number_of_points);
-					//parabola.printTrajectoryInfo();
+					parabola.printTrajectoryInfo();
 					parabola_created = true;
 
 					printf("\nSource Point: %f %f %f", source_point.x, source_point.y, source_point.z);
@@ -3231,7 +3240,7 @@ private:
 			if(index_point < number_of_points) {
 
 				axis_of_rotation = glm::cross(parabola.trajectory[index_point].tangent, uy);
-				rot_mat = glm::rotate(glm::mat4(1), glm::radians(2.0f), uy);
+				rot_mat = glm::rotate(glm::mat4(1), glm::radians(90.0f * deltaT), uy);
 
 				RobotPos = parabola.trajectory[index_point].pos;
 
@@ -3391,8 +3400,7 @@ private:
 				//std::cout << "Making invisible object " << j << "\n";
 			}
 			if (j == 2) {
-				glm::mat4 RobWM = glm::rotate(glm::translate(glm::mat4(1), RobotPos),
-					lookYaw, glm::vec3(0, 1, 0));
+				glm::mat4 RobWM = glm::translate(glm::mat4(1), RobotPos) * glm::rotate(glm::mat4(1), lookYaw, glm::vec3(0, 1, 0));
 				ubo.mMat = glm::rotate(RobWM, 1.5708f, glm::vec3(0, 1, 0)) * ubo.mMat;
 				FollowerTargetPos = RobWM * glm::translate(glm::mat4(1), FollowerDeltaTarget) *
 					glm::rotate(glm::mat4(1), lookPitch, glm::vec3(1, 0, 0)) *
