@@ -1,5 +1,6 @@
 #define GLFW_INCLUDE_VULKAN
 #define G 9.80665
+#define PI 3.1415
 #include <GLFW/glfw3.h>
 
 #include <iostream>
@@ -214,6 +215,18 @@ Trajectory calculateTrajectory(glm::vec3 source_point, glm::vec3 destination_poi
 
 
 
+}
+
+
+glm::mat3 changeBaseMatrix(glm::vec3 direction) {
+
+
+	glm::vec3 new_y = glm::normalize(direction);
+	glm::vec3 new_z = glm::normalize(glm::cross(new_y, glm::vec3(0, 1, 0)));
+	glm::vec3 new_x = glm::normalize(glm::cross(new_y, new_z));
+	glm::mat3 transform = glm::mat3(new_x, new_y, new_z);
+
+	return transform;
 }
 
 
@@ -455,9 +468,6 @@ struct VertexDescriptor {
 		}
 	}
 };
-
-
-
 
 
 
@@ -709,8 +719,8 @@ private:
 
 	// Robot Pos
 	glm::vec3 RobotPos = glm::vec3(3,3,2);
-	glm::vec3 RobotCamDeltaPos = glm::vec3(0.0f, 0.335f, -0.0f);
-	glm::vec3 FollowerDeltaTarget = glm::vec3(0.0f, 0.335f, 0.0f);
+	glm::vec3 RobotCamDeltaPos = glm::vec3(0.0f, 0.5f, -0.0f);
+	glm::vec3 FollowerDeltaTarget = glm::vec3(0.0f, 0.5f, 0.0f);
 	float followerDist = 0.5;
 	float lookYaw = 0.0;
 	float lookPitch = 0.0;
@@ -3128,7 +3138,7 @@ private:
 
 		//parametri per la rotazione
 		static glm::vec3 axis_of_rotation = glm::vec3(0, 1, 0);
-		static glm::mat4 rot_mat = glm::rotate(glm::mat4(1.0f), glm::radians(0.0f), glm::vec3(0,1,0));
+		static glm::mat4 rot_mat = glm::mat4(1);
 		
 		
 
@@ -3239,8 +3249,9 @@ private:
 			
 			if(index_point < number_of_points) {
 
-				axis_of_rotation = glm::cross(parabola.trajectory[index_point].tangent, uy);
-				rot_mat = glm::rotate(glm::mat4(1), glm::radians(90.0f * deltaT), uy);
+				
+				glm::vec3 rot_axis = glm::vec3(glm::cross(uy, glm::normalize(destination_point - source_point)));
+				rot_mat = glm::rotate(glm::mat4(1), -parabola.trajectory[index_point].angle + float(PI / 2), rot_axis);
 
 				RobotPos = parabola.trajectory[index_point].pos;
 
@@ -3400,7 +3411,7 @@ private:
 				//std::cout << "Making invisible object " << j << "\n";
 			}
 			if (j == 2) {
-				glm::mat4 RobWM = glm::translate(glm::mat4(1), RobotPos) * glm::rotate(glm::mat4(1), lookYaw, glm::vec3(0, 1, 0));
+				glm::mat4 RobWM = glm::translate(glm::mat4(1), RobotPos) * rot_mat * glm::rotate(glm::mat4(1), lookYaw, glm::vec3(0, 1, 0));
 				ubo.mMat = glm::rotate(RobWM, 1.5708f, glm::vec3(0, 1, 0)) * ubo.mMat;
 				FollowerTargetPos = RobWM * glm::translate(glm::mat4(1), FollowerDeltaTarget) *
 					glm::rotate(glm::mat4(1), lookPitch, glm::vec3(1, 0, 0)) *
