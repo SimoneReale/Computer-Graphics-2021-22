@@ -298,7 +298,7 @@ struct SingleText {
 
 std::vector<SingleText> SceneText = {
 	{1, {"First Person View", "", "", ""}, 0, 0},
-	{1, {"Third Person View", "", "", ""}, 0, 0},
+	{1, {"Rocket View", "", "", ""}, 0, 0},
 	{1, {"Top View", "", "", ""}, 0, 0},
 	{1, {"Hidden Impostor View", "", "", ""}, 0, 0}
 };
