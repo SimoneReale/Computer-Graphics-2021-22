@@ -27,7 +27,13 @@
 
 #include <chrono>
 
-
+enum PerturbationLevel
+{
+	NO_WIND = 0,
+	WEAK = 1,
+	MEDIUM = 2,
+	STRONG = 3
+};
 
 
 typedef struct Trajectory_Point {
@@ -218,17 +224,59 @@ Trajectory calculateTrajectory(glm::vec3 source_point, glm::vec3 destination_poi
 }
 
 
-glm::mat3 changeBaseMatrix(glm::vec3 direction) {
+void applyWindToTrajectory(Trajectory &init_trajectory, PerturbationLevel perturbationlevel) {
+	 
+	float distance = glm::length(init_trajectory.trajectory.back().pos - init_trajectory.trajectory[0].pos);
 
+	float intensity_parameter = 1.0;
 
-	glm::vec3 new_y = glm::normalize(direction);
-	glm::vec3 new_z = glm::normalize(glm::cross(new_y, glm::vec3(0, 1, 0)));
-	glm::vec3 new_x = glm::normalize(glm::cross(new_y, new_z));
-	glm::mat3 transform = glm::mat3(new_x, new_y, new_z);
+	switch (perturbationlevel) {
+	
+	case NO_WIND:
+		intensity_parameter *= 0;
+		break;
+	case WEAK:
+		intensity_parameter *= 0.025;
+		break;
+	case MEDIUM:
+		intensity_parameter *= 0.05;
+		break;
+	case STRONG:
+		intensity_parameter *= 0.1;
+		break;
+	default:
+		intensity_parameter *= 0;
+		break;
 
-	return transform;
+	}
+
+	
+	float med = 0;
+
+	for (int i = 0; i < init_trajectory.trajectory.size(); i++) {
+	
+	
+		//tre numeri a caso tra 0.0 e 1.0
+		float x = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
+		float y = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
+		float z = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
+
+		glm::vec3 wind = glm::vec3(x, y, z) * intensity_parameter;
+
+		init_trajectory.trajectory[i].pos += wind;
+
+	
+		med += glm::length(wind);
+	
+	}
+
+	if (init_trajectory.trajectory.size() != 0) {
+		med /= init_trajectory.trajectory.size();
+	}
+
+	printf("\nAllontanamento medio dovuto al vento %f\n", med);
+
 }
-
 
 
 
@@ -3118,6 +3166,7 @@ private:
 
 		//parametri di controllo
 		static bool launch = false;
+		static PerturbationLevel pertubationlevel = NO_WIND;
 		static bool source_set = false;
 		static bool destination_set = false;
 		static bool parabola_created = false;
@@ -3155,6 +3204,49 @@ private:
 			}
 		}
 
+
+		//scelgo il punto di destinazione
+		if (glfwGetKey(window, GLFW_KEY_1)) {
+			if (time - debounce > 0.33) {
+
+
+				//non è il massimo switchare sulla variabile che si riassegna, ma tant'è
+				switch (pertubationlevel) {
+
+				case NO_WIND:
+					pertubationlevel = WEAK;
+					printf("\nVento weak");
+					break;
+				case WEAK:
+					pertubationlevel = MEDIUM;
+					printf("\nVento medio");
+					break;
+				case MEDIUM:
+					pertubationlevel = STRONG;
+					printf("\nVento strong");
+					break;
+				case STRONG:
+					pertubationlevel = NO_WIND;
+					printf("\nVento nullo");
+					break;
+				default:
+					pertubationlevel = NO_WIND;
+					break;
+
+				}
+
+				debounce = time;
+				
+
+
+			}
+		}
+
+
+
+
+
+
 		//scelgo il punto di partenza, creo la traiettoria e blocco la possibilità di muovermi
 		if (glfwGetKey(window, GLFW_KEY_U)) {
 			if (time - debounce > 0.33) {
@@ -3169,6 +3261,10 @@ private:
 
 					number_of_points = int((glm::length(destination_point - source_point) * n_of_points_per_unit_of_measure) * (1 + sin(parabola.trajectory[0].angle)));
 					parabola = calculateTrajectory(source_point, destination_point, a_of_parabola, number_of_points);
+
+					applyWindToTrajectory(parabola, pertubationlevel);
+
+
 					parabola.printTrajectoryInfo();
 					parabola_created = true;
 
