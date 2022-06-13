@@ -36,6 +36,81 @@ enum PerturbationLevel
 };
 
 
+
+
+
+typedef struct MyVertex {
+
+	float vx;
+	float vy;
+	float vz;
+
+
+	MyVertex(float init_vx, float init_vy, float init_vz) {
+		vx = init_vx;
+		vy = init_vy;
+		vz = init_vz;
+	}
+
+
+	void printVertex() {
+		printf("\n(%f, %f, %f)", vx, vy, vz);
+	}
+
+
+}MyVertex;
+
+typedef struct MyVertexVector {
+
+	std::vector<MyVertex> vec;
+
+
+
+
+	MyVertex search(float x, float z) {
+
+		float min_diff = sqrt(pow((vec[0].vx - x), 2) + pow((vec[0].vz - z), 2));
+		MyVertex nearest = vec[0];
+
+
+		/*for (int i = 0; i < 24; i++) {
+			vec[i].printVertex();
+		}*/
+
+
+		for (MyVertex v : vec) {
+			
+			float temp_diff = sqrt(pow((v.vx - x), 2) + pow((v.vz - z), 2));
+
+			if ( temp_diff < min_diff) {
+
+				min_diff = temp_diff;
+				nearest = v;
+
+			}
+
+
+
+		}
+
+
+		return nearest;
+
+
+
+	}
+
+	void push_back(MyVertex x) {
+
+		vec.push_back(x);
+	}
+
+
+
+
+
+} MyVertexVector;
+
 typedef struct Trajectory_Point {
 
 	glm::vec3 pos;
@@ -224,6 +299,11 @@ Trajectory calculateTrajectory(glm::vec3 source_point, glm::vec3 destination_poi
 }
 
 
+
+MyVertexVector vertex_vector_of_map;
+
+
+
 void applyWindToTrajectory(Trajectory &init_trajectory, PerturbationLevel perturbationlevel) {
 	 
 	float distance = glm::length(init_trajectory.trajectory.back().pos - init_trajectory.trajectory[0].pos);
@@ -322,7 +402,7 @@ struct Model {
 };
 
 const std::vector<Model> SceneToLoad = {
-	{"floor.obj", "MapSciFi1024.png", {0,0,0}, 4, Flat},
+	{"floor.obj", "MapSciFi1024.png", {0,0,0}, 1, Flat},
 	{"Walls.obj", "Colors.png", {0,0,0}, 0.001, Flat},
 	{"Character.obj", "Colors2.png", {0,0,0}, 0.01, Flat},
 	{"Walls.obj", "Colors.png", {0,0,0}, 0.001, Wire},
@@ -766,7 +846,7 @@ private:
 	
 
 	// Robot Pos
-	glm::vec3 RobotPos = glm::vec3(3,3,2);
+	glm::vec3 RobotPos = glm::vec3(3,0.2,2);
 	glm::vec3 RobotCamDeltaPos = glm::vec3(0.0f, 0.5f, -0.0f);
 	glm::vec3 FollowerDeltaTarget = glm::vec3(0.0f, 0.5f, 0.0f);
 	float followerDist = 0.5;
@@ -2292,6 +2372,24 @@ private:
 	
 	void loadModelWithTexture(const Model& M, int i) {
 		loadMesh(M.ObjFile, Scene[i].MD, phongAndSkyBoxVertices);
+
+
+		//MODIFICAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+		if (i == 0) {
+
+
+			for (int k = 0; k < Scene[i].MD.vertices.size() - 2; k++) {
+
+
+				vertex_vector_of_map.push_back(MyVertex(Scene[i].MD.vertices[k], Scene[i].MD.vertices[k + 1], Scene[i].MD.vertices[k + 2]));
+
+
+			}
+
+
+
+		}
+
 		createVertexBuffer(Scene[i].MD);
 		createIndexBuffer(Scene[i].MD);
 		
@@ -3380,7 +3478,9 @@ private:
 		//printo informaizoni varie
 		if (glfwGetKey(window, GLFW_KEY_I)) {
 			if (time - debounce > 0.33) {
+				MyVertex nearest = vertex_vector_of_map.search(RobotPos.x, RobotPos.z);
 				printf("\nCurrent Position:  %f %f %f\n", RobotPos.x, RobotPos.y, RobotPos.z);
+				printf("Current nearest map vertex: %f %f %f\n", nearest.vx, nearest.vy, nearest.vz);
 				printf("Destination set: %d		Source set: %d		Parabola created :%d\n", destination_set, source_set, parabola_created);
 				printf("Current Destination: %f %f %f\n", destination_point.x, destination_point.y, destination_point.z);
 				debounce = time;
@@ -3428,6 +3528,22 @@ private:
 		if (glfwGetKey(window, GLFW_KEY_DOWN)) {
 			lookPitch -= deltaT * ROT_SPEED;
 		}
+
+
+
+
+		if (!launch) {
+
+			/*MyVertex newVertexHeight = vertex_vector_of_map.search(RobotPos.x, RobotPos.z);
+			RobotPos.y = newVertexHeight.vy;*/
+
+		}
+
+
+
+
+
+
 
 		//tolgo le collisioni
 
