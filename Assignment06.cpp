@@ -401,8 +401,11 @@ struct Model {
 	const PipelineType pt;
 };
 
+
+#define SCALING_MAP 4
+
 const std::vector<Model> SceneToLoad = {
-	{"floor.obj", "MapSciFi1024.png", {0,0,0}, 1, Flat},
+	{"floor.obj", "MapSciFi1024.png", {0,0,0}, SCALING_MAP, Flat},
 	{"Walls.obj", "Colors.png", {0,0,0}, 0.001, Flat},
 	{"Character.obj", "Colors2.png", {0,0,0}, 0.01, Flat},
 	{"Walls.obj", "Colors.png", {0,0,0}, 0.001, Wire},
@@ -846,10 +849,10 @@ private:
 	
 
 	// Robot Pos
-	glm::vec3 RobotPos = glm::vec3(3,0.2,2);
-	glm::vec3 RobotCamDeltaPos = glm::vec3(0.0f, 0.5f, -0.0f);
-	glm::vec3 FollowerDeltaTarget = glm::vec3(0.0f, 0.5f, 0.0f);
-	float followerDist = 0.5;
+	glm::vec3 RobotPos = glm::vec3(3,1.25,2);
+	glm::vec3 RobotCamDeltaPos = glm::vec3(0.0f, 0.2f, -0.0f);
+	glm::vec3 FollowerDeltaTarget = glm::vec3(0.0f, 0.3f, 0.0f);
+	float followerDist = 0.25;
 	float lookYaw = 0.0;
 	float lookPitch = 0.0;
 	float lookRoll = 0.0;
@@ -2381,7 +2384,7 @@ private:
 			for (int k = 0; k < Scene[i].MD.vertices.size() - 2; k++) {
 
 
-				vertex_vector_of_map.push_back(MyVertex(Scene[i].MD.vertices[k], Scene[i].MD.vertices[k + 1], Scene[i].MD.vertices[k + 2]));
+				vertex_vector_of_map.push_back(MyVertex(SCALING_MAP * Scene[i].MD.vertices[k], SCALING_MAP * Scene[i].MD.vertices[k + 1], SCALING_MAP * Scene[i].MD.vertices[k + 2]));
 
 
 			}
@@ -3532,12 +3535,13 @@ private:
 
 
 
-		if (!launch) {
-
-			/*MyVertex newVertexHeight = vertex_vector_of_map.search(RobotPos.x, RobotPos.z);
-			RobotPos.y = newVertexHeight.vy;*/
-
-		}
+		/*if (!launch && oldRobotPos != RobotPos) {
+			if (time - debounce > 1) {
+				MyVertex newVertexHeight = vertex_vector_of_map.search(RobotPos.x, RobotPos.z);
+				RobotPos.y = newVertexHeight.vy + 0.10;
+				debounce = time;
+			}
+		}*/
 
 
 
