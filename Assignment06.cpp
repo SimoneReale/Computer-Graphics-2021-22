@@ -37,19 +37,19 @@ enum PerturbationLevel
 
 
 
-
-
 typedef struct MyVertex {
 
 	float vx;
 	float vy;
 	float vz;
+	float distance_on_xz;
 
 
 	MyVertex(float init_vx, float init_vy, float init_vz) {
 		vx = init_vx;
 		vy = init_vy;
 		vz = init_vz;
+		distance_on_xz = sqrt(vx * vx + vz * vz);
 	}
 
 
@@ -59,12 +59,46 @@ typedef struct MyVertex {
 
 
 }MyVertex;
+typedef struct MyVertexBucket {
 
-typedef struct MyVertexVector {
+	float start_distance;
+	float end_distance;
 
 	std::vector<MyVertex> vec;
 
 
+
+	MyVertexBucket(float ini_start, float ini_end) {
+		start_distance = ini_start;
+		end_distance = ini_end;
+	}
+
+	void push_back(MyVertex x) {
+		
+		vec.push_back(x);
+	}
+
+
+	void printBucket() {
+
+		printf("\nStart: %f End: %f\n", start_distance, end_distance);
+	}
+
+
+
+
+}MyVertexBucket;
+typedef struct MyVertexVector {
+
+	std::vector<MyVertex> vec;
+
+	bool init = false;
+	const int number_of_buckets = 20;
+	float max_distance;
+	float min_distance;
+
+
+	std::vector<MyVertexBucket> buckets;
 
 
 	MyVertex search(float x, float z) {
@@ -101,15 +135,124 @@ typedef struct MyVertexVector {
 	}
 
 	void push_back(MyVertex x) {
+		
+		if (!init) {
+			max_distance = x.distance_on_xz;
+			min_distance = x.distance_on_xz;
+			init = true;
+		}
+
+
+		if (max_distance < x.distance_on_xz) { max_distance = x.distance_on_xz;}
+		if(min_distance > x.distance_on_xz) { min_distance = x.distance_on_xz;}
+
 
 		vec.push_back(x);
+	}
+
+
+	void createBuckets() {
+
+		//li metto già in ordine di distanza
+		float scarto = (max_distance - min_distance) / number_of_buckets;
+
+
+
+		for (int i = 0; i < number_of_buckets; i++) {
+
+			float min = min_distance + i * scarto;
+
+			buckets.push_back(MyVertexBucket(min, min + scarto));
+
+
+		}
+
+
+
+
+
+	}
+
+
+
+	int binarySearch(std::vector<MyVertexBucket> buckets, int l, int r, float x)
+	{
+		if (r >= l) {
+			int mid = l + (r - l) / 2;
+
+			// If the element is present at the middle
+			// itself
+			if (buckets[mid].start_distance <= x && buckets[mid].end_distance >= x)
+				return mid;
+
+			// If element is smaller than mid, then
+			// it can only be present in left subarray
+			if (buckets[mid].start_distance > x)
+				return binarySearch(buckets, l, mid - 1, x);
+
+			// Else the element can only be present
+			// in right subarray
+			return binarySearch(buckets, mid + 1, r, x);
+		}
+
+		// We reach here when element is not
+		// present in array
+		return -1;
+	}
+
+
+
+
+	void populateBuckets(){
+	
+		int total = vec.size();
+		printf("\nTotal: %d \n", total);
+		
+		int count = 0;
+
+		for (int i = 0; i < vec.size(); i++) {
+
+			int bucket_num = binarySearch(buckets, 0, buckets.size(), vec[i].distance_on_xz);
+			buckets[bucket_num].push_back(vec[i]);
+
+			if (count % 1000 == 0) {
+				printf("\nSono arrivato a: %d\n", count);
+			}
+
+			count++;
+		}
+
+		for (int i = 0; i < 10; i++) {
+
+			buckets[0].vec[i].printVertex();
+
+		}
+	
+	
+	
+	}
+
+
+
+	void initVector() {
+
+		createBuckets();
+		populateBuckets();
+		vec.clear();
+
+
+
 	}
 
 
 
 
 
+
+
+
 } MyVertexVector;
+
 
 typedef struct Trajectory_Point {
 
@@ -849,7 +992,7 @@ private:
 	
 
 	// Robot Pos
-	glm::vec3 RobotPos = glm::vec3(3,1.25,2);
+	glm::vec3 RobotPos = glm::vec3(7.30,0.50,3.20);
 	glm::vec3 RobotCamDeltaPos = glm::vec3(0.0f, 0.2f, -0.0f);
 	glm::vec3 FollowerDeltaTarget = glm::vec3(0.0f, 0.3f, 0.0f);
 	float followerDist = 0.25;
@@ -2385,10 +2528,11 @@ private:
 
 
 				vertex_vector_of_map.push_back(MyVertex(SCALING_MAP * Scene[i].MD.vertices[k], SCALING_MAP * Scene[i].MD.vertices[k + 1], SCALING_MAP * Scene[i].MD.vertices[k + 2]));
-
+				
 
 			}
 
+			//vertex_vector_of_map.initVector();
 
 
 		}
@@ -3536,9 +3680,9 @@ private:
 
 
 		/*if (!launch && oldRobotPos != RobotPos) {
-			if (time - debounce > 1) {
+			if (time - debounce > 0.5) {
 				MyVertex newVertexHeight = vertex_vector_of_map.search(RobotPos.x, RobotPos.z);
-				RobotPos.y = newVertexHeight.vy + 0.10;
+				RobotPos.y = newVertexHeight.vy + 0.60;
 				debounce = time;
 			}
 		}*/
