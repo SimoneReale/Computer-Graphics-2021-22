@@ -994,7 +994,7 @@ private:
 	// Robot Pos
 	glm::vec3 RobotPos = glm::vec3(7.30,0.50,3.20);
 	glm::vec3 RobotCamDeltaPos = glm::vec3(0.0f, 0.2f, -0.0f);
-	glm::vec3 FollowerDeltaTarget = glm::vec3(0.0f, 0.3f, 0.0f);
+	glm::vec3 FollowerDeltaTarget = glm::vec3(0.0f, 0.0f, 0.0f);
 	float followerDist = 0.25;
 	float lookYaw = 0.0;
 	float lookPitch = 0.0;
@@ -3724,7 +3724,7 @@ private:
 				glm::vec3 RRCDP = glm::vec3(glm::rotate(glm::mat4(1), lookYaw, glm::vec3(0, 1, 0)) *
 					glm::vec4(RobotCamDeltaPos, 1.0f));
 				//std::cout << RRCDP.x << " " << RRCDP.z << "\n";
-				CamMat = LookInDirMat(RobotPos + RRCDP, glm::vec3(lookYaw, lookPitch, lookRoll));
+				CamMat = LookInDirMat(RobotPos /* + RRCDP */, glm::vec3(lookYaw, lookPitch, lookRoll));
 			}
 			break;
 		case 1:
@@ -3737,7 +3737,7 @@ private:
 					glm::vec4(FollowerDeltaTarget, 1.0f));
 
 				//eye center e up
-				CamMat = LookAtMat(FollowerPos, RobotPos + RFDT, lookRoll);
+				CamMat = LookAtMat(FollowerPos, RobotPos /* + RFDT */, lookRoll);
 			}
 			break;
 		case 2:
