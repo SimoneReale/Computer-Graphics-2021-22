@@ -36,6 +36,16 @@ enum PerturbationLevel
 };
 
 
+enum MachineState {
+
+	FirstPersonState = 0,
+	SelectPositionsState = 1,
+	ThirdPersonRocketState = 2
+	
+
+};
+
+
 
 typedef struct MyVertex {
 
@@ -506,8 +516,8 @@ void applyWindToTrajectory(Trajectory &init_trajectory, PerturbationLevel pertur
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
-const uint32_t WIDTH = 800;
-const uint32_t HEIGHT = 600;
+const uint32_t WIDTH = 960;
+const uint32_t HEIGHT = 540;
 
 const std::string MODEL_PATH = "models/";
 const std::string TEXTURE_PATH = "textures/";
@@ -547,12 +557,22 @@ struct Model {
 
 #define SCALING_MAP 4
 
+
+
+#define FLOOR 0
+#define CHARACTER 2
+#define TARGET 4
+
+
+
+
+
 const std::vector<Model> SceneToLoad = {
-	{"floor.obj", "MapSciFi1024.png", {0,0,0}, SCALING_MAP, Flat},
+	{"terrain.obj", "terrain.png", {0,0,0}, SCALING_MAP, Flat},
+	{"Walls.obj", "Colors.png", {0,0,0}, 0, Flat},
+	{"rocket.obj", "Colors2.png", {0,0,0}, 0.01, Flat},
 	{"Walls.obj", "Colors.png", {0,0,0}, 0.001, Flat},
-	{"Character.obj", "Colors2.png", {0,0,0}, 0.01, Flat},
-	{"Walls.obj", "Colors.png", {0,0,0}, 0.001, Wire},
-	{"pyramid.obj", "whatever.png", {0,0,0}, 0.3, Wire}
+	{"target.obj", "target.png", {0,0,0}, 0.1, Flat}
 };
 
 
@@ -570,14 +590,20 @@ struct SingleText {
 	int len;
 };
 
+
+#define SPACE_STATION 0
+#define ROCKET_VIEW 1
+#define SELECTION_POSITIONS 2
+
+
+
 std::vector<SingleText> SceneText = {
-	{1, {"First Person View", "", "", ""}, 0, 0},
-	{1, {"Rocket View", "", "", ""}, 0, 0},
-	{1, {"Top View", "", "", ""}, 0, 0},
+	{1, {"Space station", "", "", ""}, 0, 0},
+	{1, {"Rocket view", "", "", ""}, 0, 0},
+	{1, {"Select destination and start", "", "", ""}, 0, 0},
 	{1, {"Hidden Impostor View", "", "", ""}, 0, 0}
 };
 
-#include "view.cpp"
 
 
 
@@ -992,7 +1018,7 @@ private:
 	
 
 	// Robot Pos
-	glm::vec3 RobotPos = glm::vec3(7.30,0.50,3.20);
+	glm::vec3 RobotPos = glm::vec3(12.30,0.50,3.20);
 	glm::vec3 RobotCamDeltaPos = glm::vec3(0.0f, 0.2f, -0.0f);
 	glm::vec3 FollowerDeltaTarget = glm::vec3(0.0f, 0.0f, 0.0f);
 	float followerDist = 0.25;
@@ -3368,6 +3394,7 @@ private:
 		
 		const float ROT_SPEED = glm::radians(60.0f);
 		const float MOVE_SPEED = 0.75f;
+		const float MOVE_SPEED_WHILE_POSITIONING = 4 * MOVE_SPEED;
 		const float MOUSE_RES = 500.0f;
 
 		static double old_xpos = 0, old_ypos = 0;
@@ -3376,7 +3403,8 @@ private:
 		double m_dx = xpos - old_xpos;
 		double m_dy = ypos - old_ypos;
 		old_xpos = xpos; old_ypos = ypos;
-		//std::cout << xpos << " " << ypos << " " << m_dx << " " << m_dy << "\n";
+		
+
 
 		glfwSetInputMode(window, GLFW_STICKY_MOUSE_BUTTONS, GLFW_TRUE);
 		if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
@@ -3388,20 +3416,6 @@ private:
 
 		static bool xray = false;
 
-		if (glfwGetKey(window, GLFW_KEY_SPACE)) {
-			if (time - debounce > 0.33) {
-				curText = (curText + 1) % SceneText.size();
-				debounce = time;
-				framebufferResized = true;
-				//std::cout << curText << "\n";
-			}
-		}
-		if (glfwGetKey(window, GLFW_KEY_X)) {
-			if (time - debounce > 0.33) {
-				xray = !xray;
-				debounce = time;
-			}
-		}
 
 
 		//versori delle direzioni
@@ -3435,210 +3449,24 @@ private:
 		static glm::mat4 rot_mat = glm::mat4(1);
 		
 		
+		static MachineState machine_state = FirstPersonState;
 
-		//scelgo il punto di destinazione
-		if (glfwGetKey(window, GLFW_KEY_O)) {
-			if (time - debounce > 0.33) {
 
-				destination_point = RobotPos;
-				printf("\nDestination Point: %f %f %f\n", destination_point.x, destination_point.y, destination_point.z);
-				destination_set = true;
-				debounce = time;
-				
-				
+
+
+		if (machine_state == FirstPersonState) {
+
+			//aggiorno il testo
+			if (curText != SPACE_STATION) {
+
+				framebufferResized = true;
 			}
-		}
-
-
-		//scelgo il punto di destinazione
-		if (glfwGetKey(window, GLFW_KEY_1)) {
-			if (time - debounce > 0.33) {
-
-
-				//non è il massimo switchare sulla variabile che si riassegna, ma tant'è
-				switch (pertubationlevel) {
-
-				case NO_WIND:
-					pertubationlevel = WEAK;
-					printf("\nVento weak");
-					break;
-				case WEAK:
-					pertubationlevel = MEDIUM;
-					printf("\nVento medio");
-					break;
-				case MEDIUM:
-					pertubationlevel = STRONG;
-					printf("\nVento strong");
-					break;
-				case STRONG:
-					pertubationlevel = NO_WIND;
-					printf("\nVento nullo");
-					break;
-				default:
-					pertubationlevel = NO_WIND;
-					break;
-
-				}
-
-				debounce = time;
-				
-
-
-			}
-		}
-
-
-
-
-
-
-		//scelgo il punto di partenza, creo la traiettoria e blocco la possibilità di muovermi
-		if (glfwGetKey(window, GLFW_KEY_U)) {
-			if (time - debounce > 0.33) {
-
-				if (destination_set) {
-
-					source_point = RobotPos;
-					
-					source_set = true;
-
-					parabola = calculateTrajectory(source_point, destination_point, a_of_parabola, init_num_of_points);
-
-					number_of_points = int((glm::length(destination_point - source_point) * n_of_points_per_unit_of_measure) * (1 + sin(parabola.trajectory[0].angle)));
-					parabola = calculateTrajectory(source_point, destination_point, a_of_parabola, number_of_points);
-
-					applyWindToTrajectory(parabola, pertubationlevel);
-
-
-					parabola.printTrajectoryInfo();
-					parabola_created = true;
-
-					printf("\nSource Point: %f %f %f", source_point.x, source_point.y, source_point.z);
-				}
-				else {
-
-					printf("\nImposta prima la destinazione del punto di partenza!\n");
-				}
-
-				debounce = time;
-
-			}
-		}
-
-		//ho diminuito time - demounce per far si che la parabola possa cambiare più rapidamente
-		//cambio l'angolo di partenza
-		if (glfwGetKey(window, GLFW_KEY_0)) {
-			if (time - debounce > 0.10) {
-
-				a_of_parabola -= delta_a_of_parabola;
-				//printf("\nHai diminuito a of parabola: %f\n", a_of_parabola);
-
-				if (parabola_created) {
-
-					parabola = calculateTrajectory(source_point, destination_point, a_of_parabola, number_of_points);
-					printf("\nNuovo angolo di partenza: %f\n", glm::degrees(parabola.trajectory[0].angle));
-					printf("Nuova lunghezza arco di parabola %f\n", parabola.approx_arc_length);
-
-
-				}
-
-				debounce = time;
-
-
-			}
-		}
-		if (glfwGetKey(window, GLFW_KEY_9)) {
-			if (time - debounce > 0.10) {
-
-				
-				if (a_of_parabola + delta_a_of_parabola < 0) {
-					a_of_parabola += delta_a_of_parabola;
-					//printf("\nHai aumentato a of parabola: %f\n", a_of_parabola);
-
-					if (parabola_created) {
-
-						parabola = calculateTrajectory(source_point, destination_point, a_of_parabola, number_of_points);
-						printf("\nNuovo angolo di partenza: %f\n", glm::degrees(parabola.trajectory[0].angle));
-						printf("Nuova lunghezza arco di parabola %f\n", parabola.approx_arc_length);
-
-					}
-				}
-
-				debounce = time;
-
-
-			}
-		}
-
-
-
-
-		//lancio il razzo
-		if (glfwGetKey(window, GLFW_KEY_L) && destination_set && source_set && parabola_created) {
+			curText = SPACE_STATION;
 			
-			if (time - debounce > 0.33) {
 
-				launch = true;
-				debounce = time;
+			RobotPos = glm::vec3(60, 60, 60);
 
-			}
-		}
-
-		glm::vec3 oldRobotPos = RobotPos;
-
-		if (launch && destination_set && source_set && parabola_created) {
-			
-			if(index_point < number_of_points) {
-
-				
-				glm::vec3 rot_axis = glm::vec3(glm::cross(uy, glm::normalize(destination_point - source_point)));
-				rot_mat = glm::rotate(glm::mat4(1), -parabola.trajectory[index_point].angle + float(PI / 2), rot_axis);
-
-				RobotPos = parabola.trajectory[index_point].pos;
-
-				index_point++;
-				
-			}
-			else {
-
-				RobotPos = destination_point;
-				index_point = 0;
-				launch = false;
-				destination_set = false;
-				source_set = false;
-				parabola_created = false;
-				printf("\nDistanza percorsa %f", parabola.approx_arc_length);
-				printf("\nAngolo (in gradi):\nPartenza: %f\nArrivo: %f\n", glm::degrees(parabola.trajectory[index_point].angle), glm::degrees(parabola.trajectory[number_of_points - 1].angle));
-			}
-		}
-
-
-
-		//resetto la posizione a 3,0,2
-		if (glfwGetKey(window, GLFW_KEY_R)) {
-
-			if (time - debounce > 0.33) {
-				RobotPos = glm::vec3(3, 0, 2);
-				debounce = time;
-			}
-		}
-		//printo informaizoni varie
-		if (glfwGetKey(window, GLFW_KEY_I)) {
-			if (time - debounce > 0.33) {
-				MyVertex nearest = vertex_vector_of_map.search(RobotPos.x, RobotPos.z);
-				printf("\nCurrent Position:  %f %f %f\n", RobotPos.x, RobotPos.y, RobotPos.z);
-				printf("Current nearest map vertex: %f %f %f\n", nearest.vx, nearest.vy, nearest.vz);
-				printf("Destination set: %d		Source set: %d		Parabola created :%d\n", destination_set, source_set, parabola_created);
-				printf("Current Destination: %f %f %f\n", destination_point.x, destination_point.y, destination_point.z);
-				debounce = time;
-
-			}
-		}
-
-
-		//sto per partire, blocco la possibilità di cambiare punto di partenza
-		if (!source_set) {
-
+			//normal commands
 			if (glfwGetKey(window, GLFW_KEY_Q)) {
 				lookRoll -= deltaT * ROT_SPEED;
 			}
@@ -3661,20 +3489,378 @@ private:
 				RobotPos += MOVE_SPEED * glm::vec3(glm::rotate(glm::mat4(1.0f), lookYaw,
 					glm::vec3(0.0f, 1.0f, 0.0f)) * glm::vec4(0, 0, 1, 1)) * deltaT;
 			}
+
+			if (glfwGetKey(window, GLFW_KEY_LEFT)) {
+				lookYaw += deltaT * ROT_SPEED;
+			}
+			if (glfwGetKey(window, GLFW_KEY_RIGHT)) {
+				lookYaw -= deltaT * ROT_SPEED;
+			}
+			if (glfwGetKey(window, GLFW_KEY_UP)) {
+				lookPitch += deltaT * ROT_SPEED;
+			}
+			if (glfwGetKey(window, GLFW_KEY_DOWN)) {
+				lookPitch -= deltaT * ROT_SPEED;
+			}
+
+
+
+
+			if (glfwGetKey(window, GLFW_KEY_X)) {
+
+				machine_state = SelectPositionsState;
+				//resetto la rotazione
+				rot_mat = glm::mat4(1);
+				RobotPos = glm::vec3(0, 3, 0);
+
+			}
+
 		}
 
-		if (glfwGetKey(window, GLFW_KEY_LEFT)) {
-			lookYaw += deltaT * ROT_SPEED;
+
+
+
+		if (machine_state == SelectPositionsState) {
+			
+			
+
+
+			//aggiorno il testo
+			if (curText != SELECTION_POSITIONS) {
+
+				framebufferResized = true;
+			}
+			curText = SELECTION_POSITIONS;
+			
+			float mx = 0.0f;
+			float mz = 0.0f;
+
+			//normal commands
+			//****************UN TASTO ALLA VOLTA
+			if (glfwGetKey(window, GLFW_KEY_A) && !glfwGetKey(window, GLFW_KEY_W) && !glfwGetKey(window, GLFW_KEY_S)) {
+
+				mx = -1;
+
+			}
+
+			if (glfwGetKey(window, GLFW_KEY_D) && !glfwGetKey(window, GLFW_KEY_W) && !glfwGetKey(window, GLFW_KEY_S)) {
+
+				mx = 1;
+
+			}
+
+			if (glfwGetKey(window, GLFW_KEY_S) && !glfwGetKey(window, GLFW_KEY_A) && !glfwGetKey(window, GLFW_KEY_D)) {
+
+				mz = 1;
+
+			}
+
+			if (glfwGetKey(window, GLFW_KEY_W) && !glfwGetKey(window, GLFW_KEY_A) && !glfwGetKey(window, GLFW_KEY_D)) {
+
+				mz = -1;
+
+			}
+
+
+
+			//***********************DUE TASTI ASSIEME
+			if (glfwGetKey(window, GLFW_KEY_A) && glfwGetKey(window, GLFW_KEY_W)) {
+
+				mx = -1;
+				mz = -1;
+
+			}
+
+
+			if (glfwGetKey(window, GLFW_KEY_A) && glfwGetKey(window, GLFW_KEY_S)) {
+
+				mx = -1;
+				mz = 1;
+
+			}
+
+
+
+			if (glfwGetKey(window, GLFW_KEY_D) && glfwGetKey(window, GLFW_KEY_S)) {
+
+				mx = 1;
+				mz = 1;
+
+			}
+
+			if (glfwGetKey(window, GLFW_KEY_D) && glfwGetKey(window, GLFW_KEY_W)) {
+
+				mx = 1;
+				mz = -1;
+
+			}
+
+
+			RobotPos += mx * ux * MOVE_SPEED_WHILE_POSITIONING * deltaT;
+			RobotPos += mz * uz * MOVE_SPEED_WHILE_POSITIONING * deltaT;
+
+			//scelgo il vento
+			if (glfwGetKey(window, GLFW_KEY_1)) {
+				if (time - debounce > 0.33) {
+
+
+					//non è il massimo switchare sulla variabile che si riassegna, ma tant'è
+					switch (pertubationlevel) {
+
+					case NO_WIND:
+						pertubationlevel = WEAK;
+						printf("\nVento weak");
+						break;
+					case WEAK:
+						pertubationlevel = MEDIUM;
+						printf("\nVento medio");
+						break;
+					case MEDIUM:
+						pertubationlevel = STRONG;
+						printf("\nVento strong");
+						break;
+					case STRONG:
+						pertubationlevel = NO_WIND;
+						printf("\nVento nullo");
+						break;
+					default:
+						pertubationlevel = NO_WIND;
+						break;
+
+					}
+
+					debounce = time;
+
+
+
+				}
+			}
+
+			//scelgo il punto di destinazione
+			if (glfwGetKey(window, GLFW_KEY_O)) {
+				if (time - debounce > 0.33) {
+					MyVertex nearest = vertex_vector_of_map.search(RobotPos.x, RobotPos.z);
+					destination_point = glm::vec3(nearest.vx, nearest.vy + 0.10, nearest.vz);
+					printf("\nDestination Point: %f %f %f\n", destination_point.x, destination_point.y, destination_point.z);
+					destination_set = true;
+					debounce = time;
+
+
+				}
+			}
+
+
+			//scelgo il punto di partenza, creo la traiettoria e blocco la possibilità di muovermi
+			if (glfwGetKey(window, GLFW_KEY_U)) {
+				if (time - debounce > 0.33) {
+
+					if (destination_set) {
+
+						MyVertex nearest = vertex_vector_of_map.search(RobotPos.x, RobotPos.z);
+						source_point = glm::vec3(nearest.vx, nearest.vy, nearest.vz);
+						printf("Il vertice di partenjza è %f %f %f", nearest.vx, nearest.vy, nearest.vz);
+
+						source_set = true;
+
+						parabola = calculateTrajectory(source_point, destination_point, a_of_parabola, init_num_of_points);
+
+						number_of_points = int((glm::length(destination_point - source_point) * n_of_points_per_unit_of_measure) * (1 + sin(parabola.trajectory[0].angle)));
+						parabola = calculateTrajectory(source_point, destination_point, a_of_parabola, number_of_points);
+
+						applyWindToTrajectory(parabola, pertubationlevel);
+
+
+						//parabola.printTrajectoryInfo();
+						parabola_created = true;
+
+						printf("\nSource Point: %f %f %f", source_point.x, source_point.y, source_point.z);
+					}
+					else {
+
+						printf("\nImposta prima la destinazione del punto di partenza!\n");
+					}
+
+					debounce = time;
+
+				}
+			}
+
+
+			//ho diminuito time - demounce per far si che la parabola possa cambiare più rapidamente
+			//cambio l'angolo di partenza
+			if (glfwGetKey(window, GLFW_KEY_0)) {
+				if (time - debounce > 0.10) {
+
+					a_of_parabola -= delta_a_of_parabola;
+					//printf("\nHai diminuito a of parabola: %f\n", a_of_parabola);
+
+					if (parabola_created) {
+
+						parabola = calculateTrajectory(source_point, destination_point, a_of_parabola, number_of_points);
+						printf("\nNuovo angolo di partenza: %f\n", glm::degrees(parabola.trajectory[0].angle));
+						printf("Nuova lunghezza arco di parabola %f\n", parabola.approx_arc_length);
+
+
+					}
+
+					debounce = time;
+
+
+				}
+			}
+			if (glfwGetKey(window, GLFW_KEY_9)) {
+				if (time - debounce > 0.10) {
+
+
+					if (a_of_parabola + delta_a_of_parabola < 0) {
+						a_of_parabola += delta_a_of_parabola;
+						//printf("\nHai aumentato a of parabola: %f\n", a_of_parabola);
+
+						if (parabola_created) {
+
+							parabola = calculateTrajectory(source_point, destination_point, a_of_parabola, number_of_points);
+							printf("\nNuovo angolo di partenza: %f\n", glm::degrees(parabola.trajectory[0].angle));
+							printf("Nuova lunghezza arco di parabola %f\n", parabola.approx_arc_length);
+
+						}
+					}
+
+					debounce = time;
+
+
+				}
+			}
+
+
+
+
+			//lancio il razzo
+			if (destination_set && source_set && parabola_created) {
+
+				machine_state = ThirdPersonRocketState;
+					
+			}
+
 		}
-		if (glfwGetKey(window, GLFW_KEY_RIGHT)) {
-			lookYaw -= deltaT * ROT_SPEED;
+
+
+
+		if (machine_state == ThirdPersonRocketState) {
+			
+			//aggiorno il testo e posiziono il razzo
+			if (curText != ROCKET_VIEW) {
+
+				framebufferResized = true;
+				RobotPos = source_point;
+
+			}
+			curText = ROCKET_VIEW;
+			
+
+			
+
+			//per girare la visuale
+			if (glfwGetKey(window, GLFW_KEY_LEFT)) {
+				lookYaw += deltaT * ROT_SPEED;
+			}
+			if (glfwGetKey(window, GLFW_KEY_RIGHT)) {
+				lookYaw -= deltaT * ROT_SPEED;
+			}
+			if (glfwGetKey(window, GLFW_KEY_UP)) {
+				lookPitch += deltaT * ROT_SPEED;
+			}
+			if (glfwGetKey(window, GLFW_KEY_DOWN)) {
+				lookPitch -= deltaT * ROT_SPEED;
+			}
+
+
+			//lancio il razzo
+			if (glfwGetKey(window, GLFW_KEY_L) && destination_set && source_set && parabola_created && !launch) {
+
+				if (time - debounce > 0.33) {
+
+					launch = true;
+					debounce = time;
+
+				}
+			}
+
+
+
+
+			if (launch) {
+
+				if (index_point < number_of_points) {
+
+
+					glm::vec3 rot_axis = glm::vec3(glm::cross(uy, glm::normalize(destination_point - source_point)));
+					rot_mat = glm::rotate(glm::mat4(1), -parabola.trajectory[index_point].angle + float(PI / 2), rot_axis);
+
+					RobotPos = parabola.trajectory[index_point].pos;
+
+					index_point++;
+
+				}
+
+				else {
+
+					RobotPos = destination_point;
+					index_point = 0;
+					launch = false;
+					destination_set = false;
+					source_set = false;
+					parabola_created = false;
+					printf("\nDistanza percorsa %f", parabola.approx_arc_length);
+					printf("\nAngolo (in gradi):\nPartenza: %f\nArrivo: %f\n", glm::degrees(parabola.trajectory[index_point].angle), glm::degrees(parabola.trajectory[number_of_points - 1].angle));
+
+
+				}
+			}
+			else {
+				//uscire dalla vista
+				if (glfwGetKey(window, GLFW_KEY_E)) {
+
+					if (time - debounce > 0.33) {
+
+						machine_state = FirstPersonState;
+						//resetto la rotazione
+						rot_mat = glm::mat4(1);
+						debounce = time;
+
+					}
+
+				}
+
+			}
+
+
+
+
+
+
 		}
-		if (glfwGetKey(window, GLFW_KEY_UP)) {
-			lookPitch += deltaT * ROT_SPEED;
+
+		
+
+		glm::vec3 oldRobotPos = RobotPos;
+
+		
+		
+		//printo informaizoni varie
+		if (glfwGetKey(window, GLFW_KEY_I)) {
+			if (time - debounce > 0.33) {
+				MyVertex nearest = vertex_vector_of_map.search(RobotPos.x, RobotPos.z);
+				printf("\nCurrent Position:  %f %f %f\n", RobotPos.x, RobotPos.y, RobotPos.z);
+				printf("Current nearest map vertex: %f %f %f\n", nearest.vx, nearest.vy, nearest.vz);
+				printf("Destination set: %d		Source set: %d		Parabola created :%d\n", destination_set, source_set, parabola_created);
+				printf("Current Destination: %f %f %f\n", destination_point.x, destination_point.y, destination_point.z);
+				debounce = time;
+
+			}
 		}
-		if (glfwGetKey(window, GLFW_KEY_DOWN)) {
-			lookPitch -= deltaT * ROT_SPEED;
-		}
+
+
+		
 
 
 
@@ -3714,50 +3900,49 @@ private:
 		glm::vec3 FollowerTargetPos;
 		static glm::vec3 FollowerPos = RobotPos;
 
-		switch (curText) {
-		case 0:
-			if (curText != prevCt) {
-				std::cout << "First Person view\n";
-				prevCt = curText;
-			}
-			{
-				glm::vec3 RRCDP = glm::vec3(glm::rotate(glm::mat4(1), lookYaw, glm::vec3(0, 1, 0)) *
-					glm::vec4(RobotCamDeltaPos, 1.0f));
-				//std::cout << RRCDP.x << " " << RRCDP.z << "\n";
-				CamMat = LookInDirMat(RobotPos /* + RRCDP */, glm::vec3(lookYaw, lookPitch, lookRoll));
-			}
-			break;
-		case 1:
-			if (curText != prevCt) {
-				std::cout << "Third Person view\n";
-				prevCt = curText;
-			}
-			{
-				glm::vec3 RFDT = glm::vec3(glm::rotate(glm::mat4(1), lookYaw, glm::vec3(0, 1, 0)) *
-					glm::vec4(FollowerDeltaTarget, 1.0f));
 
-				//eye center e up
-				CamMat = LookAtMat(FollowerPos, RobotPos /* + RFDT */, lookRoll);
-			}
-			break;
-		case 2:
-			if (curText != prevCt) {
-				std::cout << "Top view\n";
-				prevCt = curText;
-			}
+
+
+
+
+		if (machine_state == FirstPersonState) {
+			glm::vec3 Angs = glm::vec3(lookYaw, lookPitch, lookRoll);
+
+			CamMat = glm::rotate(glm::mat4(1.0), -Angs.z, glm::vec3(0, 0, 1)) *
+				glm::rotate(glm::mat4(1.0), -Angs.x, glm::vec3(0, 1, 0)) *
+				glm::rotate(glm::mat4(1.0), -Angs.y, glm::vec3(1, 0, 0)) *
+				glm::translate(glm::mat4(1.0), -RobotPos);
+			
+		}
+
+
+		
+		if (machine_state == ThirdPersonRocketState) {
+
+			//eye center e up
+			CamMat = glm::rotate(glm::mat4(1.0), glm::radians(-lookRoll), glm::vec3(0, 0, 1)) * glm::lookAt(FollowerPos, RobotPos, glm::vec3(0, 1, 0));
+
+
+		}
+
+		if (machine_state == SelectPositionsState) {
+
 			CamMat = glm::translate(
 				glm::rotate(glm::mat4(1), 1.5708f, glm::vec3(1, 0, 0)),
 				glm::vec3(0, -10, 0));
-			break;
-		case 3:
-			if (curText != prevCt) {
-				std::cout << "Impostor view\n";
-				prevCt = curText;
-			}
-			CamMat = glm::translate(glm::mat4(1.0), glm::vec3(0, 0, -1) - RobotPos - FollowerDeltaTarget);
-			break;
+
+
 		}
+
+
+
+		
 		EyePos = -glm::vec3(CamMat * glm::vec4(0, 0, 0, 1));
+		
+		
+		
+		
+		
 		// Updates unifoms for the objects
 		for (int j = 0; j < Scene.size(); j++) {
 			UniformBufferObject ubo{};
@@ -3770,7 +3955,7 @@ private:
 				ubo.mMat = glm::scale(ubo.mMat, glm::vec3(0.0));
 				//std::cout << "Making invisible object " << j << "\n";
 			}
-			if (j == 2) {
+			if (j == CHARACTER) {
 				glm::mat4 RobWM = glm::translate(glm::mat4(1), RobotPos) * rot_mat * glm::rotate(glm::mat4(1), lookYaw, glm::vec3(0, 1, 0));
 				ubo.mMat = glm::rotate(RobWM, 1.5708f, glm::vec3(0, 1, 0)) * ubo.mMat;
 				FollowerTargetPos = RobWM * glm::translate(glm::mat4(1), FollowerDeltaTarget) *
@@ -3781,7 +3966,7 @@ private:
 				ubo.mMat = glm::scale(ubo.mMat, glm::vec3(0.0));
 				//std::cout << "Making invisible object " << j << "\n";
 			}
-			if (j == 4) {
+			if (j == TARGET) {
 				const float followerFilterCoeff = 7.5;
 				float alpha = fmin(followerFilterCoeff * deltaT, 1.0);
 				FollowerPos = FollowerPos * (1.0f - alpha) + alpha * FollowerTargetPos;
@@ -3789,7 +3974,10 @@ private:
 				ubo.mMat = glm::rotate(glm::mat4(1), lookPitch, glm::vec3(1, 0, 0)) * ubo.mMat;
 				ubo.mMat = glm::rotate(glm::mat4(1), lookYaw, glm::vec3(0, 1, 0)) * ubo.mMat;
 				ubo.mMat = glm::translate(glm::mat4(1), FollowerPos) * ubo.mMat;
-				if (curText < 2) {
+				
+				
+				if (machine_state != SelectPositionsState) {
+
 					ubo.mMat = glm::scale(ubo.mMat, glm::vec3(0.0));
 				}
 			}

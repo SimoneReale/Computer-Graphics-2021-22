@@ -120,7 +120,6 @@
   <ItemGroup>
     <ClCompile Include="Assignment06.cpp" />
     <ClCompile Include="headers\glm\detail\glm.cpp" />
-    <ClCompile Include="view.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="headers\glm\common.hpp" />

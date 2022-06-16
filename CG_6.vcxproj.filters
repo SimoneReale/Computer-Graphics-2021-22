@@ -18,9 +18,6 @@
     <ClCompile Include="Assignment06.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="view.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="headers\glm\detail\glm.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
