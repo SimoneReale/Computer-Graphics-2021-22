@@ -40,7 +40,8 @@ enum MachineState {
 
 	FirstPersonState = 0,
 	SelectPositionsState = 1,
-	ThirdPersonRocketState = 2
+	ThirdPersonRocketState = 2,
+	TitleScreenState = 3
 	
 
 };
@@ -560,17 +561,21 @@ struct Model {
 
 
 #define FLOOR 0
+#define TITLE 1
 #define CHARACTER 2
 #define TARGET 4
 
 
 
 
+#define TITLE_SCREEN_X_COORDINATE 0
+#define TITLE_SCREEN_Y_COORDINATE 40
+#define TITLE_SCREEN_Z_COORDINATE 0
 
 const std::vector<Model> SceneToLoad = {
 	{"terrain.obj", "terrain.png", {0,0,0}, SCALING_MAP, Flat},
-	{"Walls.obj", "Colors.png", {0,0,0}, 0, Flat},
-	{"rocket.obj", "Colors2.png", {0,0,0}, 0.01, Flat},
+	{"title.obj", "Colors.png", {TITLE_SCREEN_X_COORDINATE,TITLE_SCREEN_Y_COORDINATE, TITLE_SCREEN_Z_COORDINATE}, 0.01, Flat},
+	{"rocket.obj", "Colors.png", {0,0,0}, 0.01, Flat},
 	{"Walls.obj", "Colors.png", {0,0,0}, 0.001, Flat},
 	{"target.obj", "target.png", {0,0,0}, 0.1, Flat}
 };
@@ -2545,7 +2550,7 @@ private:
 	void loadModelWithTexture(const Model& M, int i) {
 		loadMesh(M.ObjFile, Scene[i].MD, phongAndSkyBoxVertices);
 
-
+		
 		//MODIFICAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
 		if (i == 0) {
 
@@ -2597,6 +2602,9 @@ private:
 		std::vector<tinyobj::material_t> materials;
 		std::string warn, err;
 		
+
+		
+
 		if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, 
 						(MODEL_PATH + FName).c_str())) {
 			throw std::runtime_error(warn + err);
@@ -2609,18 +2617,27 @@ private:
 		std::vector<float> vertex{};
 		vertex.resize(VD.size);
 
+
+		
+
 //		std::unordered_map<std::vector<float>, uint32_t> uniqueVertices{};
 		for (const auto& shape : shapes) {
 			for (const auto& index : shape.mesh.indices) {
 				
+
 				vertex[VD.deltaPos + 0] = attrib.vertices[3 * index.vertex_index + 0];
 				vertex[VD.deltaPos + 1] = attrib.vertices[3 * index.vertex_index + 1];
 				vertex[VD.deltaPos + 2] = attrib.vertices[3 * index.vertex_index + 2];
-				vertex[VD.deltaTexCoord + 0] = attrib.texcoords[2 * index.texcoord_index + 0];
-				vertex[VD.deltaTexCoord + 1] = 1 - attrib.texcoords[2 * index.texcoord_index + 1];
-				vertex[VD.deltaNormal + 0] = attrib.normals[3 * index.normal_index + 0];
-				vertex[VD.deltaNormal + 1] = attrib.normals[3 * index.normal_index + 1];
-				vertex[VD.deltaNormal + 2] = attrib.normals[3 * index.normal_index + 2];
+
+				if (FName != "title.obj") {
+					vertex[VD.deltaTexCoord + 0] = attrib.texcoords[2 * index.texcoord_index + 0];
+					vertex[VD.deltaTexCoord + 1] = 1 - attrib.texcoords[2 * index.texcoord_index + 1];
+					vertex[VD.deltaNormal + 0] = attrib.normals[3 * index.normal_index + 0];
+					vertex[VD.deltaNormal + 1] = attrib.normals[3 * index.normal_index + 1];
+					vertex[VD.deltaNormal + 2] = attrib.normals[3 * index.normal_index + 2];
+				}
+
+				
 				
 //				if (uniqueVertices.count(vertex) == 0) {
 					int j = MD.vertices.size() / VD.size;
@@ -3406,11 +3423,7 @@ private:
 		
 
 
-		glfwSetInputMode(window, GLFW_STICKY_MOUSE_BUTTONS, GLFW_TRUE);
-		if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
-			lookPitch += m_dy * ROT_SPEED / MOUSE_RES;
-			lookYaw += m_dx * ROT_SPEED / MOUSE_RES;
-		}
+		
 
 		static float debounce = time;
 
@@ -3449,7 +3462,33 @@ private:
 		static glm::mat4 rot_mat = glm::mat4(1);
 		
 		
-		static MachineState machine_state = FirstPersonState;
+		static MachineState machine_state = TitleScreenState;
+
+
+
+
+		if (machine_state == TitleScreenState) {
+
+			RobotPos = glm::vec3(0, -0.2, 0.8);
+
+			glfwSetInputMode(window, GLFW_STICKY_MOUSE_BUTTONS, GLFW_TRUE);
+			if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
+				lookPitch += m_dy * ROT_SPEED / MOUSE_RES;
+				lookYaw += m_dx * ROT_SPEED / MOUSE_RES;
+			}
+
+
+			if (glfwGetKey(window, GLFW_KEY_SPACE)) {
+
+				machine_state = FirstPersonState;
+
+			}
+
+
+
+
+		}
+
 
 
 
@@ -3510,7 +3549,8 @@ private:
 
 				machine_state = SelectPositionsState;
 				//resetto la rotazione
-				rot_mat = glm::mat4(1);
+				lookYaw = 0;
+				lookPitch = 0;
 				RobotPos = glm::vec3(0, 3, 0);
 
 			}
@@ -3905,7 +3945,7 @@ private:
 
 
 
-		if (machine_state == FirstPersonState) {
+		if (machine_state == FirstPersonState || machine_state == TitleScreenState) {
 			glm::vec3 Angs = glm::vec3(lookYaw, lookPitch, lookRoll);
 
 			CamMat = glm::rotate(glm::mat4(1.0), -Angs.z, glm::vec3(0, 0, 1)) *
@@ -3951,10 +3991,7 @@ private:
 			ubo.mMat = glm::scale(glm::mat4(1), glm::vec3(SceneToLoad[j].scale));
 
 
-			if ((j == 1) && xray) {
-				ubo.mMat = glm::scale(ubo.mMat, glm::vec3(0.0));
-				//std::cout << "Making invisible object " << j << "\n";
-			}
+
 			if (j == CHARACTER) {
 				glm::mat4 RobWM = glm::translate(glm::mat4(1), RobotPos) * rot_mat * glm::rotate(glm::mat4(1), lookYaw, glm::vec3(0, 1, 0));
 				ubo.mMat = glm::rotate(RobWM, 1.5708f, glm::vec3(0, 1, 0)) * ubo.mMat;
@@ -3962,10 +3999,29 @@ private:
 					glm::rotate(glm::mat4(1), lookPitch, glm::vec3(1, 0, 0)) *
 					glm::vec4(0.0f, 0.0f, followerDist, 1.0f);
 			}
+
+
+
+
+			if (j == TITLE) {
+
+				if (machine_state != TitleScreenState) {
+
+					ubo.mMat = glm::scale(ubo.mMat, glm::vec3(0.0));
+				}
+
+			}
+
+
+
+
+
+
 			if ((j == 3) && !xray) {
 				ubo.mMat = glm::scale(ubo.mMat, glm::vec3(0.0));
 				//std::cout << "Making invisible object " << j << "\n";
 			}
+
 			if (j == TARGET) {
 				const float followerFilterCoeff = 7.5;
 				float alpha = fmin(followerFilterCoeff * deltaT, 1.0);
