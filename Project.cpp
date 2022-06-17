@@ -2596,6 +2596,7 @@ private:
 		createTextureSampler(SText.TD);
 	}
 	
+	//MODIFICA
 	void loadMesh(const char* FName, ModelData& MD, VertexDescriptor &VD) {
 		tinyobj::attrib_t attrib;
 		std::vector<tinyobj::shape_t> shapes;

@@ -22,6 +22,7 @@
     <VCProjectVersion>17.0</VCProjectVersion>
     <ProjectGuid>{45606AE1-97B7-4837-8619-0763E2AF339F}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
+    <ProjectName>Project_Solution</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -118,7 +119,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="Assignment06.cpp" />
+    <ClCompile Include="Project.cpp" />
     <ClCompile Include="headers\glm\detail\glm.cpp" />
   </ItemGroup>
   <ItemGroup>
