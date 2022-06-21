@@ -33,7 +33,21 @@ enum PerturbationLevel
 	WEAK = 1,
 	MEDIUM = 2,
 	STRONG = 3
+
 };
+
+
+inline const char* PerturbationLevelToString(PerturbationLevel l)
+{
+	switch (l)
+	{
+	case NO_WIND:   return "NO_WIND";
+	case WEAK:      return "WEAK";
+	case MEDIUM:    return "MEDIUM";
+	case STRONG:    return "STRONG";
+	default:        return "Unknown wind power";
+	}
+}
 
 
 enum MachineState {
@@ -42,7 +56,6 @@ enum MachineState {
 	SelectPositionsState = 1,
 	ThirdPersonRocketState = 2,
 	TitleScreenState = 3
-	
 
 };
 
@@ -104,7 +117,7 @@ typedef struct MyVertexVector {
 	std::vector<MyVertex> vec;
 
 	bool init = false;
-	const int number_of_buckets = 20;
+	const int number_of_buckets = 5;
 	float max_distance;
 	float min_distance;
 
@@ -186,7 +199,7 @@ typedef struct MyVertexVector {
 
 
 
-	int binarySearch(std::vector<MyVertexBucket> buckets, int l, int r, float x)
+	int binarySearchBucket(std::vector<MyVertexBucket> buckets, int l, int r, float x)
 	{
 		if (r >= l) {
 			int mid = l + (r - l) / 2;
@@ -199,16 +212,37 @@ typedef struct MyVertexVector {
 			// If element is smaller than mid, then
 			// it can only be present in left subarray
 			if (buckets[mid].start_distance > x)
-				return binarySearch(buckets, l, mid - 1, x);
+				return binarySearchBucket(buckets, l, mid - 1, x);
 
 			// Else the element can only be present
 			// in right subarray
-			return binarySearch(buckets, mid + 1, r, x);
+			return binarySearchBucket(buckets, mid + 1, r, x);
 		}
 
 		// We reach here when element is not
 		// present in array
 		return -1;
+	}
+
+	int searchBucket(std::vector<MyVertexBucket> buckets, float x) {
+
+		for (int i = 0; i < buckets.size(); i++) {
+
+			float start_value = buckets[i].start_distance;
+			float end_value = buckets[i].end_distance;
+
+			if (start_value <= x && end_value  >= x) {
+
+				return i;
+
+			}
+
+
+
+		}
+
+
+
 	}
 
 
@@ -223,7 +257,7 @@ typedef struct MyVertexVector {
 
 		for (int i = 0; i < vec.size(); i++) {
 
-			int bucket_num = binarySearch(buckets, 0, buckets.size(), vec[i].distance_on_xz);
+			int bucket_num = searchBucket(buckets, vec[i].distance_on_xz);
 			buckets[bucket_num].push_back(vec[i]);
 
 			if (count % 1000 == 0) {
@@ -590,24 +624,53 @@ const SkyBoxModel SkyBoxToLoad = {"SkyBoxCube.obj", {"sky/bkg1_right.png", "sky/
 
 struct SingleText {
 	int usedLines;
-	const char *l[4];
+	const char *l[8];
 	int start;
 	int len;
+
+
+	void printSingleText() {
+
+		printf("\nCi sono usedLines: %d start: %d len: %d\n", usedLines, start, len);
+
+		if (start < 8) {
+
+				for (int j = start; j < 8 && j < len; j++) {
+
+					printf("\n%s", l[j]);
+
+
+				}
+		}
+		else {
+			printf("\nStart è maggiorre di 8");
+		}
+
+	}
+
 };
 
 
+//testi fissi
 #define SPACE_STATION 0
 #define ROCKET_VIEW 1
 #define SELECTION_POSITIONS 2
 
+#define CUSTOM_TEXT 3
+
 
 
 std::vector<SingleText> SceneText = {
-	{1, {"Space station", "", "", ""}, 0, 0},
-	{1, {"Rocket view", "", "", ""}, 0, 0},
-	{1, {"Select destination and start", "", "", ""}, 0, 0},
-	{1, {"Hidden Impostor View", "", "", ""}, 0, 0}
+	{1, {"Space station", "", "", "", "", "", "", ""}, 0, 0},
+	{1, {"PRESS C TO SEE COMMANDS", "", "", "", "", "", "", ""}, 0, 0},
+	{1, {"Select destination and start", "", "", "", "", "", "", ""}, 0, 0},
+	{1, {"Rocket view", "", "", "", "", "", "", ""}, 0, 0}
 };
+
+
+
+
+
 
 
 
@@ -932,7 +995,7 @@ struct SceneModel {
 };
 
 
-class Assignment06 {
+class ProjectCG {
 public:
     void run() {
         initWindow();
@@ -1065,7 +1128,7 @@ private:
     }
 
 	static void framebufferResizeCallback(GLFWwindow* window, int width, int height) {
-		auto app = reinterpret_cast<Assignment06*>
+		auto app = reinterpret_cast<ProjectCG*>
 						(glfwGetWindowUserPointer(window));
 		app->framebufferResized = true;
 	}    
@@ -2661,7 +2724,6 @@ private:
 	}
 	void createTextMesh(ModelData& MD, VertexDescriptor &VD) {
 		MD.vertDesc = &VD;
-
 		int totLen = 0;
 		for(auto& Txt : SceneText) {
 			for(int i = 0; i < Txt.usedLines; i++) {
@@ -3398,6 +3460,86 @@ private:
 
 
 
+
+
+	void createNewText(std::string s, std::vector<SingleText>& text) {
+
+		std::string delimiter = "\n";
+		std::vector<std::string> vector_tokens;
+
+		size_t pos = 0;
+		while ((pos = s.find(delimiter)) != std::string::npos) {
+			vector_tokens.push_back(s.substr(0, pos));
+			s.erase(0, pos + delimiter.length());
+		}
+
+
+		switch (vector_tokens.size()) {
+
+		case 0:
+			text[CUSTOM_TEXT] = { 1, {"", "", "", "", "", "", "", ""}, 0, 0 };
+
+			break;
+
+		case 1:
+			text[CUSTOM_TEXT] = { 1, {vector_tokens[0].c_str(), "", "", "", "", "", "", ""}, 0, 0 };
+			break;
+
+
+		case 2:
+			text[CUSTOM_TEXT] = { 2, {vector_tokens[0].c_str(), vector_tokens[1].c_str(), "", "", "", "", "", ""}, 0, 1 };
+			break;
+
+
+		case 3:
+			text[CUSTOM_TEXT] = { 3, {vector_tokens[0].c_str(), vector_tokens[1].c_str(), vector_tokens[2].c_str(), "", "", "", "", ""}, 0, 2 };
+			break;
+
+
+		case 4:
+			text[CUSTOM_TEXT] = { 4, {vector_tokens[0].c_str(), vector_tokens[1].c_str(), vector_tokens[2].c_str(), vector_tokens[3].c_str(), "", "", "", ""}, 0, 3 };
+			break;
+
+
+		case 5:
+			text[CUSTOM_TEXT] = { 5, {vector_tokens[0].c_str(), vector_tokens[1].c_str(), vector_tokens[2].c_str(), vector_tokens[3].c_str(), vector_tokens[4].c_str(), "", "", ""}, 0, 4 };
+			break;
+
+
+		case 6:
+			text[CUSTOM_TEXT] = { 6, {vector_tokens[0].c_str(), vector_tokens[1].c_str(), vector_tokens[2].c_str(), vector_tokens[3].c_str(), vector_tokens[4].c_str(), vector_tokens[5].c_str(), "", ""}, 0, 5 };
+			break;
+
+
+		case 7:
+			text[CUSTOM_TEXT] = { 7, {vector_tokens[0].c_str(), vector_tokens[1].c_str(), vector_tokens[2].c_str(), vector_tokens[3].c_str(), vector_tokens[4].c_str(), vector_tokens[5].c_str(), vector_tokens[6].c_str(), ""}, 0, 6 };
+			break;
+
+
+		case 8:
+			text[CUSTOM_TEXT] = { 8, {vector_tokens[0].c_str(), vector_tokens[1].c_str(), vector_tokens[2].c_str(), vector_tokens[3].c_str(), vector_tokens[4].c_str(), vector_tokens[5].c_str(), vector_tokens[6].c_str(), vector_tokens[7].c_str()}, 0, 7 };
+			break;
+
+
+
+		default:
+			text[CUSTOM_TEXT] = { 1, {"", "", "", "", "", "", "", ""}, 0, 0 };
+			break;
+
+
+
+
+
+
+		}
+
+
+		createTexts();
+
+
+
+	}
+
 	void updateUniformBuffer(uint32_t currentImage) {
 
 
@@ -3727,6 +3869,59 @@ private:
 			}
 
 
+			
+
+
+
+
+			//lancio il razzo
+			if (destination_set && source_set && parabola_created) {
+
+				machine_state = ThirdPersonRocketState;
+					
+			}
+
+		}
+
+
+
+		if (machine_state == ThirdPersonRocketState) {
+			
+			//aggiorno il testo e posiziono il razzo
+			if (curText != CUSTOM_TEXT && curText != ROCKET_VIEW) {
+
+				RobotPos = source_point;
+				framebufferResized = true;
+				
+				curText = ROCKET_VIEW;
+
+			}
+
+			
+
+
+			//printo informaizoni varie
+			if (glfwGetKey(window, GLFW_KEY_I)) {
+				if (time - debounce > 0.33) {
+					
+					char string_to_print[500];
+					snprintf(string_to_print, 500, "Current Destination: %.2f %.2f %.2f\nCurrent Position:  %.2f %.2f %.2f\nAngle (degrees):\nStart: %.2f\nArrive: %.2f\nWind power: %s\nTrajectory length: %.2f\n",
+						destination_point.x, destination_point.y, destination_point.z, source_point.x, source_point.y, source_point.z,
+						glm::degrees(parabola.trajectory[index_point].angle), glm::degrees(parabola.trajectory[number_of_points - 1].angle), PerturbationLevelToString(pertubationlevel), parabola.approx_arc_length);
+
+					createNewText(std::string(string_to_print), SceneText);
+				
+					framebufferResized = true;
+
+					curText = CUSTOM_TEXT;
+
+
+
+					debounce = time;
+
+				}
+			}
+			
 			//ho diminuito time - demounce per far si che la parabola possa cambiare più rapidamente
 			//cambio l'angolo di partenza
 			if (glfwGetKey(window, GLFW_KEY_0)) {
@@ -3738,8 +3933,18 @@ private:
 					if (parabola_created) {
 
 						parabola = calculateTrajectory(source_point, destination_point, a_of_parabola, number_of_points);
-						printf("\nNuovo angolo di partenza: %f\n", glm::degrees(parabola.trajectory[0].angle));
-						printf("Nuova lunghezza arco di parabola %f\n", parabola.approx_arc_length);
+
+
+						char string_to_print[500];
+						snprintf(string_to_print, 500, "Current Destination: %.2f %.2f %.2f\nCurrent Position:  %.2f %.2f %.2f\nAngle (degrees):\nStart: %.2f\nArrive: %.2f\nWind power: %s\nTrajectory length: %.2f\n",
+							destination_point.x, destination_point.y, destination_point.z, source_point.x, source_point.y, source_point.z,
+							glm::degrees(parabola.trajectory[index_point].angle), glm::degrees(parabola.trajectory[number_of_points - 1].angle), PerturbationLevelToString(pertubationlevel), parabola.approx_arc_length);
+
+						createNewText(std::string(string_to_print), SceneText);
+
+						framebufferResized = true;
+
+						curText = CUSTOM_TEXT;
 
 
 					}
@@ -3760,8 +3965,19 @@ private:
 						if (parabola_created) {
 
 							parabola = calculateTrajectory(source_point, destination_point, a_of_parabola, number_of_points);
-							printf("\nNuovo angolo di partenza: %f\n", glm::degrees(parabola.trajectory[0].angle));
-							printf("Nuova lunghezza arco di parabola %f\n", parabola.approx_arc_length);
+
+
+
+							char string_to_print[500];
+							snprintf(string_to_print, 500, "Current Destination: %.2f %.2f %.2f\nCurrent Position:  %.2f %.2f %.2f\nAngle (degrees):\nStart: %.2f\nArrive: %.2f\nWind power: %s\nTrajectory length: %.2f\n",
+								destination_point.x, destination_point.y, destination_point.z, source_point.x, source_point.y, source_point.z,
+								glm::degrees(parabola.trajectory[index_point].angle), glm::degrees(parabola.trajectory[number_of_points - 1].angle), PerturbationLevelToString(pertubationlevel), parabola.approx_arc_length);
+
+							createNewText(std::string(string_to_print), SceneText);
+
+							framebufferResized = true;
+
+							curText = CUSTOM_TEXT;
 
 						}
 					}
@@ -3771,32 +3987,6 @@ private:
 
 				}
 			}
-
-
-
-
-			//lancio il razzo
-			if (destination_set && source_set && parabola_created) {
-
-				machine_state = ThirdPersonRocketState;
-					
-			}
-
-		}
-
-
-
-		if (machine_state == ThirdPersonRocketState) {
-			
-			//aggiorno il testo e posiziono il razzo
-			if (curText != ROCKET_VIEW) {
-
-				framebufferResized = true;
-				RobotPos = source_point;
-
-			}
-			curText = ROCKET_VIEW;
-			
 
 			
 
@@ -3819,6 +4009,7 @@ private:
 			if (glfwGetKey(window, GLFW_KEY_L) && destination_set && source_set && parabola_created && !launch) {
 
 				if (time - debounce > 0.33) {
+
 
 					launch = true;
 					debounce = time;
@@ -3887,18 +4078,7 @@ private:
 
 		
 		
-		//printo informaizoni varie
-		if (glfwGetKey(window, GLFW_KEY_I)) {
-			if (time - debounce > 0.33) {
-				MyVertex nearest = vertex_vector_of_map.search(RobotPos.x, RobotPos.z);
-				printf("\nCurrent Position:  %f %f %f\n", RobotPos.x, RobotPos.y, RobotPos.z);
-				printf("Current nearest map vertex: %f %f %f\n", nearest.vx, nearest.vy, nearest.vz);
-				printf("Destination set: %d		Source set: %d		Parabola created :%d\n", destination_set, source_set, parabola_created);
-				printf("Current Destination: %f %f %f\n", destination_point.x, destination_point.y, destination_point.z);
-				debounce = time;
-
-			}
-		}
+		
 
 
 		
@@ -4244,7 +4424,7 @@ private:
 int main() {
     
 	
-	Assignment06 app;
+	ProjectCG app;
 
     try {
         app.run();
@@ -4253,6 +4433,7 @@ int main() {
         return EXIT_FAILURE;
     }
 
+	std::cout << "\n";
 	system("pause");
 
 
