@@ -3634,8 +3634,6 @@ private:
 
 
 
-
-
 		if (machine_state == FirstPersonState) {
 
 			//aggiorno il testo
@@ -3699,7 +3697,6 @@ private:
 			}
 
 		}
-
 
 
 
@@ -3782,42 +3779,7 @@ private:
 			RobotPos += mx * ux * MOVE_SPEED_WHILE_POSITIONING * deltaT;
 			RobotPos += mz * uz * MOVE_SPEED_WHILE_POSITIONING * deltaT;
 
-			//scelgo il vento
-			if (glfwGetKey(window, GLFW_KEY_1)) {
-				if (time - debounce > 0.33) {
-
-
-					//non è il massimo switchare sulla variabile che si riassegna, ma tant'è
-					switch (pertubationlevel) {
-
-					case NO_WIND:
-						pertubationlevel = WEAK;
-						printf("\nVento weak");
-						break;
-					case WEAK:
-						pertubationlevel = MEDIUM;
-						printf("\nVento medio");
-						break;
-					case MEDIUM:
-						pertubationlevel = STRONG;
-						printf("\nVento strong");
-						break;
-					case STRONG:
-						pertubationlevel = NO_WIND;
-						printf("\nVento nullo");
-						break;
-					default:
-						pertubationlevel = NO_WIND;
-						break;
-
-					}
-
-					debounce = time;
-
-
-
-				}
-			}
+			
 
 			//scelgo il punto di destinazione
 			if (glfwGetKey(window, GLFW_KEY_O)) {
@@ -3870,10 +3832,6 @@ private:
 
 
 			
-
-
-
-
 			//lancio il razzo
 			if (destination_set && source_set && parabola_created) {
 
@@ -3988,6 +3946,52 @@ private:
 				}
 			}
 
+
+			//scelgo il vento
+			if (glfwGetKey(window, GLFW_KEY_1)) {
+				if (time - debounce > 0.33) {
+
+
+					//non è il massimo switchare sulla variabile che si riassegna, ma tant'è
+					switch (pertubationlevel) {
+
+					case NO_WIND:
+						pertubationlevel = WEAK;
+						break;
+					case WEAK:
+						pertubationlevel = MEDIUM;
+						break;
+					case MEDIUM:
+						pertubationlevel = STRONG;
+						break;
+					case STRONG:
+						pertubationlevel = NO_WIND;
+						break;
+					default:
+						pertubationlevel = NO_WIND;
+						break;
+
+					}
+
+
+					char string_to_print[500];
+					snprintf(string_to_print, 500, "Current Destination: %.2f %.2f %.2f\nCurrent Position:  %.2f %.2f %.2f\nAngle (degrees):\nStart: %.2f\nArrive: %.2f\nWind power: %s\nTrajectory length: %.2f\n",
+						destination_point.x, destination_point.y, destination_point.z, source_point.x, source_point.y, source_point.z,
+						glm::degrees(parabola.trajectory[index_point].angle), glm::degrees(parabola.trajectory[number_of_points - 1].angle), PerturbationLevelToString(pertubationlevel), parabola.approx_arc_length);
+
+					createNewText(std::string(string_to_print), SceneText);
+
+					framebufferResized = true;
+
+					curText = CUSTOM_TEXT;
+
+					debounce = time;
+
+
+
+				}
+			}
+
 			
 
 			//per girare la visuale
@@ -4075,14 +4079,6 @@ private:
 		
 
 		glm::vec3 oldRobotPos = RobotPos;
-
-		
-		
-		
-
-
-		
-
 
 
 
