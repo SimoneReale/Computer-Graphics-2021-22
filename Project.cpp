@@ -658,6 +658,7 @@ struct SingleText {
 #define VOID_TEXT 4
 
 #define CUSTOM_TEXT 3
+#define COMMANDS_TEXT 5
 
 
 
@@ -666,6 +667,7 @@ std::vector<SingleText> SceneText = {
 	{1, {"PRESS C TO SEE COMMANDS", "", "", "", "", "", "", ""}, 0, 0},
 	{1, {"Select destination and start", "", "", "", "", "", "", ""}, 0, 0},
 	{1, {"Rocket view", "", "", "", "", "", "", ""}, 0, 0},
+	{1, {"", "", "", "", "", "", "", ""}, 0, 0},
 	{1, {"", "", "", "", "", "", "", ""}, 0, 0}
 };
 
@@ -3464,7 +3466,7 @@ private:
 
 
 
-	void createNewText(std::string s, std::vector<SingleText>& text) {
+	void createNewText(std::string s, std::vector<SingleText>& text, int index_text) {
 
 		std::string delimiter = "\n";
 		std::vector<std::string> vector_tokens;
@@ -3479,53 +3481,53 @@ private:
 		switch (vector_tokens.size()) {
 
 		case 0:
-			text[CUSTOM_TEXT] = { 1, {"", "", "", "", "", "", "", ""}, 0, 0 };
+			text[index_text] = { 1, {"", "", "", "", "", "", "", ""}, 0, 0 };
 
 			break;
 
 		case 1:
-			text[CUSTOM_TEXT] = { 1, {vector_tokens[0].c_str(), "", "", "", "", "", "", ""}, 0, 0 };
+			text[index_text] = { 1, {vector_tokens[0].c_str(), "", "", "", "", "", "", ""}, 0, 0 };
 			break;
 
 
 		case 2:
-			text[CUSTOM_TEXT] = { 2, {vector_tokens[0].c_str(), vector_tokens[1].c_str(), "", "", "", "", "", ""}, 0, 1 };
+			text[index_text] = { 2, {vector_tokens[0].c_str(), vector_tokens[1].c_str(), "", "", "", "", "", ""}, 0, 1 };
 			break;
 
 
 		case 3:
-			text[CUSTOM_TEXT] = { 3, {vector_tokens[0].c_str(), vector_tokens[1].c_str(), vector_tokens[2].c_str(), "", "", "", "", ""}, 0, 2 };
+			text[index_text] = { 3, {vector_tokens[0].c_str(), vector_tokens[1].c_str(), vector_tokens[2].c_str(), "", "", "", "", ""}, 0, 2 };
 			break;
 
 
 		case 4:
-			text[CUSTOM_TEXT] = { 4, {vector_tokens[0].c_str(), vector_tokens[1].c_str(), vector_tokens[2].c_str(), vector_tokens[3].c_str(), "", "", "", ""}, 0, 3 };
+			text[index_text] = { 4, {vector_tokens[0].c_str(), vector_tokens[1].c_str(), vector_tokens[2].c_str(), vector_tokens[3].c_str(), "", "", "", ""}, 0, 3 };
 			break;
 
 
 		case 5:
-			text[CUSTOM_TEXT] = { 5, {vector_tokens[0].c_str(), vector_tokens[1].c_str(), vector_tokens[2].c_str(), vector_tokens[3].c_str(), vector_tokens[4].c_str(), "", "", ""}, 0, 4 };
+			text[index_text] = { 5, {vector_tokens[0].c_str(), vector_tokens[1].c_str(), vector_tokens[2].c_str(), vector_tokens[3].c_str(), vector_tokens[4].c_str(), "", "", ""}, 0, 4 };
 			break;
 
 
 		case 6:
-			text[CUSTOM_TEXT] = { 6, {vector_tokens[0].c_str(), vector_tokens[1].c_str(), vector_tokens[2].c_str(), vector_tokens[3].c_str(), vector_tokens[4].c_str(), vector_tokens[5].c_str(), "", ""}, 0, 5 };
+			text[index_text] = { 6, {vector_tokens[0].c_str(), vector_tokens[1].c_str(), vector_tokens[2].c_str(), vector_tokens[3].c_str(), vector_tokens[4].c_str(), vector_tokens[5].c_str(), "", ""}, 0, 5 };
 			break;
 
 
 		case 7:
-			text[CUSTOM_TEXT] = { 7, {vector_tokens[0].c_str(), vector_tokens[1].c_str(), vector_tokens[2].c_str(), vector_tokens[3].c_str(), vector_tokens[4].c_str(), vector_tokens[5].c_str(), vector_tokens[6].c_str(), ""}, 0, 6 };
+			text[index_text] = { 7, {vector_tokens[0].c_str(), vector_tokens[1].c_str(), vector_tokens[2].c_str(), vector_tokens[3].c_str(), vector_tokens[4].c_str(), vector_tokens[5].c_str(), vector_tokens[6].c_str(), ""}, 0, 6 };
 			break;
 
 
 		case 8:
-			text[CUSTOM_TEXT] = { 8, {vector_tokens[0].c_str(), vector_tokens[1].c_str(), vector_tokens[2].c_str(), vector_tokens[3].c_str(), vector_tokens[4].c_str(), vector_tokens[5].c_str(), vector_tokens[6].c_str(), vector_tokens[7].c_str()}, 0, 7 };
+			text[index_text] = { 8, {vector_tokens[0].c_str(), vector_tokens[1].c_str(), vector_tokens[2].c_str(), vector_tokens[3].c_str(), vector_tokens[4].c_str(), vector_tokens[5].c_str(), vector_tokens[6].c_str(), vector_tokens[7].c_str()}, 0, 7 };
 			break;
 
 
 
 		default:
-			text[CUSTOM_TEXT] = { 1, {"", "", "", "", "", "", "", ""}, 0, 0 };
+			text[index_text] = { 1, {"", "", "", "", "", "", "", ""}, 0, 0 };
 			break;
 
 
@@ -3608,6 +3610,9 @@ private:
 		
 		
 		static MachineState machine_state = TitleScreenState;
+		
+		static int oldCurText = VOID_TEXT;
+		static bool commands_displayed = false;
 
 
 
@@ -3647,7 +3652,7 @@ private:
 		if (machine_state == FirstPersonState) {
 
 			//aggiorno il testo
-			if (curText != SPACE_STATION) {
+			if (curText != SPACE_STATION && !commands_displayed) {
 
 				framebufferResized = true;
 			}
@@ -3716,7 +3721,7 @@ private:
 
 
 			//aggiorno il testo
-			if (curText != SELECTION_POSITIONS) {
+			if (curText != SELECTION_POSITIONS && !commands_displayed) {
 
 				framebufferResized = true;
 			}
@@ -3856,7 +3861,7 @@ private:
 		if (machine_state == ThirdPersonRocketState) {
 			
 			//aggiorno il testo e posiziono il razzo
-			if (curText != CUSTOM_TEXT && curText != ROCKET_VIEW) {
+			if (curText != CUSTOM_TEXT && curText != ROCKET_VIEW && !commands_displayed) {
 
 				RobotPos = source_point;
 				framebufferResized = true;
@@ -3877,7 +3882,7 @@ private:
 						destination_point.x, destination_point.y, destination_point.z, source_point.x, source_point.y, source_point.z,
 						glm::degrees(parabola.trajectory[index_point].angle), glm::degrees(parabola.trajectory[number_of_points - 1].angle), PerturbationLevelToString(pertubationlevel), parabola.approx_arc_length);
 
-					createNewText(std::string(string_to_print), SceneText);
+					createNewText(std::string(string_to_print), SceneText, CUSTOM_TEXT);
 				
 					framebufferResized = true;
 
@@ -3908,7 +3913,7 @@ private:
 							destination_point.x, destination_point.y, destination_point.z, source_point.x, source_point.y, source_point.z,
 							glm::degrees(parabola.trajectory[index_point].angle), glm::degrees(parabola.trajectory[number_of_points - 1].angle), PerturbationLevelToString(pertubationlevel), parabola.approx_arc_length);
 
-						createNewText(std::string(string_to_print), SceneText);
+						createNewText(std::string(string_to_print), SceneText, CUSTOM_TEXT);
 
 						framebufferResized = true;
 
@@ -3941,7 +3946,7 @@ private:
 								destination_point.x, destination_point.y, destination_point.z, source_point.x, source_point.y, source_point.z,
 								glm::degrees(parabola.trajectory[index_point].angle), glm::degrees(parabola.trajectory[number_of_points - 1].angle), PerturbationLevelToString(pertubationlevel), parabola.approx_arc_length);
 
-							createNewText(std::string(string_to_print), SceneText);
+							createNewText(std::string(string_to_print), SceneText, CUSTOM_TEXT);
 
 							framebufferResized = true;
 
@@ -3989,7 +3994,7 @@ private:
 						destination_point.x, destination_point.y, destination_point.z, source_point.x, source_point.y, source_point.z,
 						glm::degrees(parabola.trajectory[index_point].angle), glm::degrees(parabola.trajectory[number_of_points - 1].angle), PerturbationLevelToString(pertubationlevel), parabola.approx_arc_length);
 
-					createNewText(std::string(string_to_print), SceneText);
+					createNewText(std::string(string_to_print), SceneText, CUSTOM_TEXT);
 
 					framebufferResized = true;
 
@@ -4084,6 +4089,56 @@ private:
 
 
 
+		}
+
+
+
+
+		//printo informaizoni varie
+		if (glfwGetKey(window, GLFW_KEY_C)) {
+			if (time - debounce > 0.5) {
+
+
+				if (!commands_displayed && machine_state != TitleScreenState) {
+					char string_to_print[500];
+
+
+					const char* text = "					COMMANDS\n"
+						"		W,A,S,D TO MOVE\n"
+						"		USE THE ARROW TO ROTATE THE CAMERA\n"
+						"		USE X TO VIEW FROM ABOVE\n"
+						"		USE O TO SELECT DESTINATION\n"
+						"		USE U TO SELECT START POINT\n"
+						"		USE L TO LAUNCH AND MISSILE\n";
+						"		E TO EXIT THE ROCKET\n";
+					snprintf(string_to_print, 500, text);
+
+					createNewText(std::string(string_to_print), SceneText, COMMANDS_TEXT);
+
+					framebufferResized = true;
+					
+					oldCurText = curText;
+
+					curText = COMMANDS_TEXT;
+
+					SceneText[CUSTOM_TEXT] = { 1, {"", "", "", "", "", "", "", ""}, 0, 0 };
+
+					commands_displayed = true;
+
+				}
+				else {
+
+					framebufferResized = true;
+					
+					curText = oldCurText;
+
+					commands_displayed = false;
+
+				}
+
+				debounce = time;
+
+			}
 		}
 
 		
