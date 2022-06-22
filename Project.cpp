@@ -608,10 +608,10 @@ struct Model {
 
 const std::vector<Model> SceneToLoad = {
 	{"terrain.obj", "terrain.png", {0,0,0}, SCALING_MAP, Flat},
-	{"title.obj", "Colors.png", {TITLE_SCREEN_X_COORDINATE,TITLE_SCREEN_Y_COORDINATE, TITLE_SCREEN_Z_COORDINATE}, 0.01, Flat},
+	{"title.obj", "white.jpg", {TITLE_SCREEN_X_COORDINATE,TITLE_SCREEN_Y_COORDINATE, TITLE_SCREEN_Z_COORDINATE}, 0.01, Flat},
 	{"rocket.obj", "Colors.png", {0,0,0}, 0.01, Flat},
-	{"Walls.obj", "Colors.png", {0,0,0}, 0.001, Flat},
-	{"target.obj", "target.png", {0,0,0}, 0.1, Flat}
+	{"Walls.obj", "Colors.png", {0,0,0}, 1, Flat},
+	{"target.obj", "target.png", {0,0,0}, 0.05, Flat}
 };
 
 
@@ -2693,7 +2693,7 @@ private:
 				vertex[VD.deltaPos + 1] = attrib.vertices[3 * index.vertex_index + 1];
 				vertex[VD.deltaPos + 2] = attrib.vertices[3 * index.vertex_index + 2];
 
-				if (FName != "title.obj") {
+				if (/*FName != "title.obj" &&*/ FName != "target.obj" && FName != "Walls.obj") {
 					vertex[VD.deltaTexCoord + 0] = attrib.texcoords[2 * index.texcoord_index + 0];
 					vertex[VD.deltaTexCoord + 1] = 1 - attrib.texcoords[2 * index.texcoord_index + 1];
 					vertex[VD.deltaNormal + 0] = attrib.normals[3 * index.normal_index + 0];
@@ -4175,6 +4175,13 @@ private:
 				FollowerTargetPos = RobWM * glm::translate(glm::mat4(1), FollowerDeltaTarget) *
 					glm::rotate(glm::mat4(1), lookPitch, glm::vec3(1, 0, 0)) *
 					glm::vec4(0.0f, 0.0f, followerDist, 1.0f);
+
+				if (machine_state == SelectPositionsState) {
+
+					ubo.mMat = glm::scale(ubo.mMat, glm::vec3(0.0));
+				}
+
+
 			}
 
 
