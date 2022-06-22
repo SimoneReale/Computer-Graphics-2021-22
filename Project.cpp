@@ -655,6 +655,7 @@ struct SingleText {
 #define SPACE_STATION 0
 #define ROCKET_VIEW 1
 #define SELECTION_POSITIONS 2
+#define VOID_TEXT 4
 
 #define CUSTOM_TEXT 3
 
@@ -664,7 +665,8 @@ std::vector<SingleText> SceneText = {
 	{1, {"Space station", "", "", "", "", "", "", ""}, 0, 0},
 	{1, {"PRESS C TO SEE COMMANDS", "", "", "", "", "", "", ""}, 0, 0},
 	{1, {"Select destination and start", "", "", "", "", "", "", ""}, 0, 0},
-	{1, {"Rocket view", "", "", "", "", "", "", ""}, 0, 0}
+	{1, {"Rocket view", "", "", "", "", "", "", ""}, 0, 0},
+	{1, {"", "", "", "", "", "", "", ""}, 0, 0}
 };
 
 
@@ -3611,6 +3613,14 @@ private:
 
 
 		if (machine_state == TitleScreenState) {
+
+
+			//aggiorno il testo
+			if (curText != VOID_TEXT) {
+
+				framebufferResized = true;
+			}
+			curText = VOID_TEXT;
 
 			RobotPos = glm::vec3(0, -0.2, 0.8);
 
