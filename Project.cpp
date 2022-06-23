@@ -880,8 +880,14 @@ struct UniformBufferObject {
 
 struct GlobalUniformBufferObject {
 	alignas(16) glm::vec3 lightDir;
-	alignas(16) glm::vec4 lightColor;
+	alignas(16) glm::vec3 lightColor;
 	alignas(16) glm::vec3 eyePos;
+	alignas(16) glm::vec3 lightPos;
+	alignas(16) glm::vec4 coneInOutDecayExp;
+	alignas(16) glm::vec4 selector;
+
+
+
 };
 
 VkResult CreateDebugUtilsMessengerEXT(VkInstance instance,
@@ -4220,14 +4226,6 @@ private:
 			}
 
 
-
-
-
-
-			if ((j == 3) && !xray) {
-				ubo.mMat = glm::scale(ubo.mMat, glm::vec3(0.0));
-				//std::cout << "Making invisible object " << j << "\n";
-			}
 
 			if (j == TARGET) {
 				const float followerFilterCoeff = 7.5;
