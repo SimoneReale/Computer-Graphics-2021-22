@@ -238,7 +238,6 @@ typedef struct MyVertexVector {
 			}
 
 
-
 		}
 
 
@@ -879,6 +878,7 @@ struct UniformBufferObject {
 };
 
 struct GlobalUniformBufferObject {
+
 	alignas(16) glm::vec3 lightDir;
 	alignas(16) glm::vec3 lightColor;
 	alignas(16) glm::vec3 eyePos;
