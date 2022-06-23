@@ -1100,33 +1100,14 @@ private:
 	
 	// Other global variables
 	int curText = 0;
-	stbi_uc* stationMap;
-	int stationMapWidth, stationMapHeight;
-	bool canStepPoint(float x, float y) {
-		int pixX = round(fmax(0.0f, fmin(stationMapWidth-1,  (x+10) * stationMapWidth  / 20.0)));
-		int pixY = round(fmax(0.0f, fmin(stationMapHeight-1, (y+10) * stationMapHeight / 20.0)));
-		int pix = (int)stationMap[stationMapWidth * pixY + pixX];
-//std::cout << pixX << " " << pixY << " " << x << " " << y << " \t P = " << pix << "\n";		
-		return pix > 128;
-	}
-	const float checkRadius = 0.1;
-	const int checkSteps = 12;
-	bool canStep(float x, float y) {
-		for(int i = 0; i < checkSteps; i++) {
-			if(!canStepPoint(x + cos(6.2832 * i / (float)checkSteps) * checkRadius,
-							 y + sin(6.2832 * i / (float)checkSteps) * checkRadius)) {
-				return false;
-			}
-		}
-		return true;
-	}
+	
 	
     void initWindow() {
         glfwInit();
 
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 
-        window = glfwCreateWindow(WIDTH, HEIGHT, "Vulkan", nullptr, nullptr);
+        window = glfwCreateWindow(WIDTH, HEIGHT, "3D MISSILE SIMULATOR", nullptr, nullptr);
         glfwSetWindowUserPointer(window, this);
         glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
     }
@@ -2600,18 +2581,7 @@ private:
 		
 		loadSkyBox();
 		createTexts();
-		
-
-		stationMap = stbi_load((TEXTURE_PATH + "MapSciFiStep.png").c_str(),
-							&stationMapWidth, &stationMapHeight,
-							NULL, 1);
-		if (!stationMap) {
-			std::cout << (TEXTURE_PATH + "MapSciFiStep.png").c_str() << "\n";
-			throw std::runtime_error("failed to load map image!");
-		}
-		std::cout << "Station map -> size: " << stationMapWidth
-				  << "x" << stationMapHeight <<"\n";
-//throw std::runtime_error("Now We Stop Here!");			
+				
 	}
 	
 	void loadModelWithTexture(const Model& M, int i) {
@@ -4106,9 +4076,9 @@ private:
 					const char* text = "					COMMANDS\n"
 						"		W,A,S,D TO MOVE\n"
 						"		USE THE ARROW TO ROTATE THE CAMERA\n"
-						"		USE X TO VIEW FROM ABOVE\n"
 						"		USE O TO SELECT DESTINATION\n"
 						"		USE U TO SELECT START POINT\n"
+						"		USE 0 OR 9 TO MODIFY THE ANGLE\n"
 						"		USE L TO LAUNCH AND MISSILE\n";
 						"		E TO EXIT THE ROCKET\n";
 					snprintf(string_to_print, 500, text);
@@ -4156,18 +4126,6 @@ private:
 		}*/
 
 
-
-
-
-
-
-		//tolgo le collisioni
-
-		/*if (!canStep(RobotPos.x, RobotPos.z)) {
-			RobotPos = oldRobotPos;
-		}*/
-
-		//std::cout << round(lookYaw * 180.f / 3.1416f) << "\t" << round(lookPitch * 180.f / 3.1416f) << "\t" <<  round(lookRoll * 180.f / 3.1416f) << "\n";
 
 		glm::mat4 CamMat = glm::mat4(1.0);
 
