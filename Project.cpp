@@ -4052,6 +4052,7 @@ private:
 
 					if (time - debounce > 0.33) {
 
+						RobotPos = glm::vec3(0, -20, 0);
 						machine_state = FirstPersonState;
 						//resetto la rotazione
 						rot_mat = glm::mat4(1);
@@ -4208,7 +4209,7 @@ private:
 					glm::rotate(glm::mat4(1), lookPitch, glm::vec3(1, 0, 0)) *
 					glm::vec4(0.0f, 0.0f, followerDist, 1.0f);
 
-				if (machine_state == SelectPositionsState) {
+				if (machine_state == SelectPositionsState || machine_state == FirstPersonState) {
 
 					ubo.mMat = glm::scale(ubo.mMat, glm::vec3(0.0));
 				}
