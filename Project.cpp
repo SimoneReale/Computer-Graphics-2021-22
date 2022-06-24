@@ -3616,6 +3616,7 @@ private:
 
 			if (glfwGetKey(window, GLFW_KEY_SPACE)) {
 
+				RobotPos = glm::vec3(0, -20, 0);
 				machine_state = FirstPersonState;
 
 			}
@@ -3637,7 +3638,7 @@ private:
 			curText = SPACE_STATION;
 			
 
-			RobotPos = glm::vec3(0, -20, 0);
+			
 
 			//normal commands
 			if (glfwGetKey(window, GLFW_KEY_Q)) {
