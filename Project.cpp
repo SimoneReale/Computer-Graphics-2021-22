@@ -597,6 +597,7 @@ struct Model {
 #define TITLE 1
 #define CHARACTER 2
 #define TARGET 4
+#define ROOM 5
 
 
 
@@ -608,9 +609,10 @@ struct Model {
 const std::vector<Model> SceneToLoad = {
 	{"terrain.obj", "terrain.png", {0,0,0}, SCALING_MAP, Flat},
 	{"title.obj", "white.jpg", {TITLE_SCREEN_X_COORDINATE,TITLE_SCREEN_Y_COORDINATE, TITLE_SCREEN_Z_COORDINATE}, 0.01, Flat},
-	{"rocket.obj", "Colors.png", {0,0,0}, 0.01, Flat},
-	{"Walls.obj", "Colors.png", {0,0,0}, 1, Flat},
-	{"target.obj", "red.jpg", {0,0,0}, 0.05, Flat}
+	{"rocket2.obj", "Colors.png", {0,0,0}, 0.027, Flat},
+	{"Walls2.obj", "Colors.png", {0,0,0}, 0.1, Flat},
+	{"target.obj", "red.jpg", {0,0,0}, 0.05, Flat},
+	{"room.obj", "black.jpg", {0, -20, 0}, 0.1, Flat}
 };
 
 
@@ -619,7 +621,7 @@ struct SkyBoxModel {
 	const char *TextureFile[6];
 };
 
-const SkyBoxModel SkyBoxToLoad = {"SkyBoxCube.obj", {"sky/bkg1_right.png", "sky/bkg1_left.png", "sky/bkg1_top.png", "sky/bkg1_bot.png", "sky/bkg1_front.png", "sky/bkg1_back.png"}};
+const SkyBoxModel SkyBoxToLoad = {"SkyBoxCube.obj", {"sky/space_right.png", "sky/space_left.png", "sky/space_top.png", "sky/space_bot.png", "sky/space_front.png", "sky/space_back.png"}};
 
 struct SingleText {
 	int usedLines;
@@ -3635,7 +3637,7 @@ private:
 			curText = SPACE_STATION;
 			
 
-			RobotPos = glm::vec3(60, 60, 60);
+			RobotPos = glm::vec3(0, -20, 0);
 
 			//normal commands
 			if (glfwGetKey(window, GLFW_KEY_Q)) {
@@ -3839,7 +3841,7 @@ private:
 			//aggiorno il testo e posiziono il razzo
 			if (curText != CUSTOM_TEXT && curText != ROCKET_VIEW && !commands_displayed) {
 
-				RobotPos = source_point;
+				RobotPos = source_point + glm::vec3(0, 0.2, 0);
 				framebufferResized = true;
 				
 				curText = ROCKET_VIEW;
@@ -4241,6 +4243,10 @@ private:
 
 					ubo.mMat = glm::scale(ubo.mMat, glm::vec3(0.0));
 				}
+			}
+
+			if (j == ROOM) {
+				ubo.mMat = glm::translate(glm::mat4(1), SceneToLoad[j].pos);
 			}
 
 			float rotAng = 0.0f;
