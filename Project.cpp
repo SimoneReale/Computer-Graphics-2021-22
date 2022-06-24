@@ -3842,7 +3842,7 @@ private:
 			//aggiorno il testo e posiziono il razzo
 			if (curText != CUSTOM_TEXT && curText != ROCKET_VIEW && !commands_displayed) {
 
-				RobotPos = source_point + glm::vec3(0, 0.2, 0);
+				RobotPos = source_point + glm::vec3(0, 0.15, 0);
 				framebufferResized = true;
 				
 				curText = ROCKET_VIEW;
@@ -4249,6 +4249,11 @@ private:
 
 			if (j == ROOM) {
 				ubo.mMat = glm::translate(glm::mat4(1), SceneToLoad[j].pos);
+
+				if (machine_state != FirstPersonState) {
+
+					ubo.mMat = glm::scale(ubo.mMat, glm::vec3(0.0));
+				}
 			}
 
 			float rotAng = 0.0f;
