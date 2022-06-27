@@ -593,7 +593,7 @@ struct Model {
 
 
 
-#define FLOOR 0
+#define TERRAIN 0
 #define TITLE 1
 #define CHARACTER 2
 #define TARGET 4
@@ -4202,7 +4202,15 @@ private:
 
 			ubo.mMat = glm::scale(glm::mat4(1), glm::vec3(SceneToLoad[j].scale));
 
+			if (j == TERRAIN) {
 
+				if (machine_state == TitleScreenState) {
+
+					ubo.mMat = glm::scale(ubo.mMat, glm::vec3(0.0));
+				}
+
+
+			}
 
 			if (j == CHARACTER) {
 				glm::mat4 RobWM = glm::translate(glm::mat4(1), RobotPos) * rot_mat * glm::rotate(glm::mat4(1), lookYaw, glm::vec3(0, 1, 0));
@@ -4211,7 +4219,7 @@ private:
 					glm::rotate(glm::mat4(1), lookPitch, glm::vec3(1, 0, 0)) *
 					glm::vec4(0.0f, 0.0f, followerDist, 1.0f);
 
-				if (machine_state == SelectPositionsState || machine_state == FirstPersonState) {
+				if (machine_state == SelectPositionsState || machine_state == FirstPersonState || machine_state == TitleScreenState) {
 
 					ubo.mMat = glm::scale(ubo.mMat, glm::vec3(0.0));
 				}
