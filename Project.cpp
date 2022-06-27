@@ -607,9 +607,9 @@ struct Model {
 #define TITLE_SCREEN_Z_COORDINATE 0
 
 const std::vector<Model> SceneToLoad = {
-	{"terrain.obj", "terrain.png", {0,0,0}, SCALING_MAP, Flat},
+	{"terrain.obj", "terrain.jpg", {0,0,0}, SCALING_MAP, Flat},
 	{"title.obj", "white.jpg", {TITLE_SCREEN_X_COORDINATE,TITLE_SCREEN_Y_COORDINATE, TITLE_SCREEN_Z_COORDINATE}, 0.01, Flat},
-	{"rocket2.obj", "Colors.png", {0,0,0}, 0.027, Flat},
+	{"rocket2.obj", "metal_panel.jpg", {0,0,0}, 0.027, Flat},
 	{"Walls2.obj", "Colors.png", {0,0,0}, 0.1, Flat},
 	{"target.obj", "red.jpg", {0,0,0}, 0.05, Flat},
 	{"room.obj", "black.jpg", {0, -20, 0}, 0.1, Flat}
@@ -3978,6 +3978,8 @@ private:
 					framebufferResized = true;
 
 					curText = CUSTOM_TEXT;
+
+					applyWindToTrajectory(parabola, pertubationlevel);
 
 					debounce = time;
 
