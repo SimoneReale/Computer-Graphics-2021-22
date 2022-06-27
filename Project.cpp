@@ -598,21 +598,25 @@ struct Model {
 #define CHARACTER 2
 #define TARGET 4
 #define ROOM 5
+#define MOON 6
+#define MARS 7
 
 
 
 
 #define TITLE_SCREEN_X_COORDINATE 0
-#define TITLE_SCREEN_Y_COORDINATE 40
+#define TITLE_SCREEN_Y_COORDINATE 3
 #define TITLE_SCREEN_Z_COORDINATE 0
 
 const std::vector<Model> SceneToLoad = {
 	{"terrain.obj", "terrain.jpg", {0,0,0}, SCALING_MAP, Flat},
-	{"title.obj", "white.jpg", {TITLE_SCREEN_X_COORDINATE,TITLE_SCREEN_Y_COORDINATE, TITLE_SCREEN_Z_COORDINATE}, 0.01, Flat},
+	{"title.obj", "white.jpg", {0,0,0}, 0.01, Flat},
 	{"rocket2.obj", "metal_panel.jpg", {0,0,0}, 0.027, Flat},
 	{"Walls2.obj", "Colors.png", {0,0,0}, 0.1, Flat},
 	{"target.obj", "red.jpg", {0,0,0}, 0.05, Flat},
-	{"room.obj", "black.jpg", {0, -20, 0}, 0.1, Flat}
+	{"room.obj", "black.jpg", {0, -20, 0}, 0.1, Flat},
+	{"moon.obj", "moon.png", {0, 0, 0}, 1, Flat},
+	{"neptune.obj", "terrain3.jpg", {0, 0, 0}, 1, Flat}
 };
 
 
@@ -3605,7 +3609,7 @@ private:
 			}
 			curText = VOID_TEXT;
 
-			RobotPos = glm::vec3(0, -0.2, 0.8);
+			RobotPos = glm::vec3(TITLE_SCREEN_X_COORDINATE, TITLE_SCREEN_Y_COORDINATE - 0.15, TITLE_SCREEN_Z_COORDINATE + 1.5);
 
 			glfwSetInputMode(window, GLFW_STICKY_MOUSE_BUTTONS, GLFW_TRUE);
 			if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
@@ -4204,10 +4208,10 @@ private:
 
 			if (j == TERRAIN) {
 
-				if (machine_state == TitleScreenState) {
+				/*if (machine_state == TitleScreenState) {
 
 					ubo.mMat = glm::scale(ubo.mMat, glm::vec3(0.0));
-				}
+				}*/
 
 
 			}
@@ -4232,10 +4236,31 @@ private:
 
 			if (j == TITLE) {
 
+				
+				ubo.mMat = glm::translate(glm::mat4(1), glm::vec3(TITLE_SCREEN_X_COORDINATE, TITLE_SCREEN_Y_COORDINATE, TITLE_SCREEN_Z_COORDINATE));
+				ubo.mMat = glm::scale(ubo.mMat, glm::vec3(0.02)) * ubo.mMat;
+
 				if (machine_state != TitleScreenState) {
 
 					ubo.mMat = glm::scale(ubo.mMat, glm::vec3(0.0));
 				}
+
+			}
+
+
+
+			if (j == MOON) {
+
+				ubo.mMat = glm::translate(glm::mat4(1), glm::vec3(-25, 8, -17));
+				
+
+			}
+
+
+			if (j == MARS) {
+
+				ubo.mMat = glm::translate(glm::mat4(1), glm::vec3(25, -20, -25));
+
 
 			}
 
