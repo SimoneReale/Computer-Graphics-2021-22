@@ -600,6 +600,7 @@ struct Model {
 #define ROOM 5
 #define MOON 6
 #define MARS 7
+#define DESK 8
 
 
 
@@ -616,7 +617,8 @@ const std::vector<Model> SceneToLoad = {
 	{"target.obj", "red.jpg", {0,0,0}, 0.05, Flat},
 	{"room.obj", "black.jpg", {0, -20, 0}, 0.1, Flat},
 	{"moon.obj", "moon.png", {0, 0, 0}, 1, Flat},
-	{"neptune.obj", "terrain3.jpg", {0, 0, 0}, 1, Flat}
+	{"neptune.obj", "terrain3.jpg", {0, 0, 0}, 1, Flat},
+	{"desktop.obj", "white.jpg", {-1.5, -20.5, 0}, 0.05, Flat}
 };
 
 
@@ -4282,7 +4284,7 @@ private:
 				}
 			}
 
-			if (j == ROOM) {
+			if (j == ROOM || j == DESK) {
 				ubo.mMat = glm::translate(glm::mat4(1), SceneToLoad[j].pos);
 
 				if (machine_state != FirstPersonState) {
@@ -4310,8 +4312,22 @@ private:
 		gubo.lightDir = glm::vec3(cos(glm::radians(135.0f)), sin(glm::radians(135.0f)), 0.0f);
 		gubo.lightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
 		gubo.eyePos = EyePos;
+		gubo.selector = glm::vec4(1.0f, 0.0f, 0.0f, 0.0f);
 
 		void* data;
+		vkMapMemory(device, globalUniformBuffersMemory[currentImage], 0,
+			sizeof(gubo), 0, &data);
+		memcpy(data, &gubo, sizeof(gubo));
+		vkUnmapMemory(device, globalUniformBuffersMemory[currentImage]);
+
+		//spotlight in space station
+		gubo.lightDir = glm::vec3(0.0f, 1.0f, 0.0f);
+		gubo.lightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
+		gubo.lightPos = glm::vec3(-1.5f, -20.0f, 0.0f);
+		gubo.eyePos = EyePos;
+		gubo.selector = glm::vec4(0.0f, 0.0f, 1.0f, 0.0f);
+		gubo.coneInOutDecayExp = glm::vec4(0.9f, 0.92f, 2.0f, 0.0f);
+
 		vkMapMemory(device, globalUniformBuffersMemory[currentImage], 0,
 			sizeof(gubo), 0, &data);
 		memcpy(data, &gubo, sizeof(gubo));
