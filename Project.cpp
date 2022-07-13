@@ -517,31 +517,24 @@ void applyWindToTrajectory(Trajectory &init_trajectory, PerturbationLevel pertur
 
 	}
 
+
+
+	//tre numeri a caso tra 0.0 e 1.0
+	float x = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
+	float y = 0;
+	float z = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
+
+	glm::vec3 step_wind = (glm::vec3(x, y, z) * (distance / 10) * intensity_parameter) / float(init_trajectory.trajectory.size());
+	glm::vec3 wind = glm::vec3(0, 0, 0);
 	
-	float med = 0;
 
 	for (int i = 0; i < init_trajectory.trajectory.size(); i++) {
-	
-	
-		//tre numeri a caso tra 0.0 e 1.0
-		float x = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
-		float y = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
-		float z = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
-
-		glm::vec3 wind = glm::vec3(x, y, z) * intensity_parameter;
 
 		init_trajectory.trajectory[i].pos += wind;
-
-	
-		med += glm::length(wind);
+		wind += step_wind;
 	
 	}
 
-	if (init_trajectory.trajectory.size() != 0) {
-		med /= init_trajectory.trajectory.size();
-	}
-
-	printf("\nAllontanamento medio dovuto al vento %f\n", med);
 
 }
 
@@ -613,12 +606,12 @@ const std::vector<Model> SceneToLoad = {
 	{"terrain.obj", "terrain.jpg", {0,0,0}, SCALING_MAP, Flat},
 	{"title.obj", "white.jpg", {0,0,0}, 0.01, Flat},
 	{"rocket2.obj", "metal_panel.jpg", {0,0,0}, 0.027, Flat},
-	{"Walls2.obj", "Colors.png", {0,0,0}, 0.1, Flat},
+	{"title.obj", "white.png", {0,0,0}, 0.0, Flat},
 	{"target.obj", "red.jpg", {0,0,0}, 0.05, Flat},
 	{"room.obj", "black.jpg", {0, -20, 0}, 0.1, Flat},
 	{"moon.obj", "moon.png", {0, 0, 0}, 1, Flat},
 	{"neptune.obj", "terrain3.jpg", {0, 0, 0}, 1, Flat},
-	{"desktop.obj", "white.jpg", {-1.5, -20.5, 0}, 0.05, Flat}
+	{"desktop.obj", "white.png", {-1.5, -20.5, 0}, 0.05, Flat}
 };
 
 
@@ -3527,7 +3520,24 @@ private:
 
 
 	}
+	bool checkBoundaries(glm::vec3 vert_high_x_low_z, glm::vec3 vert_low_x_high_z, glm::vec3 point) {
 
+
+		if (point.x > vert_high_x_low_z.x || point.x < vert_low_x_high_z.x) {
+
+			return false;
+		}
+
+		if (point.z > vert_low_x_high_z.z || point.z < vert_high_x_low_z.z) {
+
+			return false;
+		}
+
+
+		return true;
+
+
+	}
 	void updateUniformBuffer(uint32_t currentImage) {
 
 
@@ -3647,12 +3657,66 @@ private:
 			
 
 			//normal commands
-			if (glfwGetKey(window, GLFW_KEY_Q)) {
+			/*if (glfwGetKey(window, GLFW_KEY_Q)) {
 				lookRoll -= deltaT * ROT_SPEED;
 			}
 			if (glfwGetKey(window, GLFW_KEY_E)) {
 				lookRoll += deltaT * ROT_SPEED;
+			}*/
+
+
+			/*if (glfwGetKey(window, GLFW_KEY_LEFT)) {
+				CamAng.y += deltaT * ROT_SPEED;
 			}
+			if (glfwGetKey(window, GLFW_KEY_RIGHT)) {
+				CamAng.y -= deltaT * ROT_SPEED;
+			}
+			if (glfwGetKey(window, GLFW_KEY_UP)) {
+				CamAng.x += deltaT * ROT_SPEED;
+			}
+			if (glfwGetKey(window, GLFW_KEY_DOWN)) {
+				CamAng.x -= deltaT * ROT_SPEED;
+			}
+			if (glfwGetKey(window, GLFW_KEY_Q)) {
+				CamAng.z -= deltaT * ROT_SPEED;
+			}
+			if (glfwGetKey(window, GLFW_KEY_E)) {
+				CamAng.z += deltaT * ROT_SPEED;
+			}
+
+			glm::mat3 CamDir = glm::mat3(glm::rotate(glm::mat4(1.0f), CamAng.y, glm::vec3(0.0f, 1.0f, 0.0f))) *
+				glm::mat3(glm::rotate(glm::mat4(1.0f), CamAng.x, glm::vec3(1.0f, 0.0f, 0.0f))) *
+				glm::mat3(glm::rotate(glm::mat4(1.0f), CamAng.z, glm::vec3(0.0f, 0.0f, 1.0f)));
+
+
+			if (glfwGetKey(window, GLFW_KEY_A)) {
+				CamPos -= MOVE_SPEED * glm::vec3(glm::rotate(glm::mat4(1.0f), CamAng.y,
+					glm::vec3(0.0f, 1.0f, 0.0f)) * glm::vec4(1, 0, 0, 1)) * deltaT;
+			}
+			if (glfwGetKey(window, GLFW_KEY_D)) {
+				CamPos += MOVE_SPEED * glm::vec3(glm::rotate(glm::mat4(1.0f), CamAng.y,
+					glm::vec3(0.0f, 1.0f, 0.0f)) * glm::vec4(1, 0, 0, 1)) * deltaT;
+			}
+			if (glfwGetKey(window, GLFW_KEY_S)) {
+				CamPos += MOVE_SPEED * glm::vec3(glm::rotate(glm::mat4(1.0f), CamAng.y,
+					glm::vec3(0.0f, 1.0f, 0.0f)) * glm::vec4(0, 0, 1, 1)) * deltaT;
+			}
+			if (glfwGetKey(window, GLFW_KEY_W)) {
+				CamPos -= MOVE_SPEED * glm::vec3(glm::rotate(glm::mat4(1.0f), CamAng.y,
+					glm::vec3(0.0f, 1.0f, 0.0f)) * glm::vec4(0, 0, 1, 1)) * deltaT;
+			}
+			if (glfwGetKey(window, GLFW_KEY_F)) {
+				CamPos -= MOVE_SPEED * glm::vec3(0, 1, 0) * deltaT;
+			}
+			if (glfwGetKey(window, GLFW_KEY_R)) {
+				CamPos += MOVE_SPEED * glm::vec3(0, 1, 0) * deltaT;
+			}*/
+
+
+
+
+
+
 			if (glfwGetKey(window, GLFW_KEY_A)) {
 				RobotPos -= MOVE_SPEED * glm::vec3(glm::rotate(glm::mat4(1.0f), lookYaw,
 					glm::vec3(0.0f, 1.0f, 0.0f)) * glm::vec4(1, 0, 0, 1)) * deltaT;
@@ -3669,6 +3733,7 @@ private:
 				RobotPos += MOVE_SPEED * glm::vec3(glm::rotate(glm::mat4(1.0f), lookYaw,
 					glm::vec3(0.0f, 1.0f, 0.0f)) * glm::vec4(0, 0, 1, 1)) * deltaT;
 			}
+
 
 			if (glfwGetKey(window, GLFW_KEY_LEFT)) {
 				lookYaw += deltaT * ROT_SPEED;
@@ -3703,7 +3768,7 @@ private:
 		if (machine_state == SelectPositionsState) {
 			
 			
-
+			glm::vec3 oldPos = RobotPos;
 
 			//aggiorno il testo
 			if (curText != SELECTION_POSITIONS && !commands_displayed) {
@@ -3778,6 +3843,16 @@ private:
 
 			RobotPos += mx * ux * MOVE_SPEED_WHILE_POSITIONING * deltaT;
 			RobotPos += mz * uz * MOVE_SPEED_WHILE_POSITIONING * deltaT;
+
+
+			
+			bool isRobotInside = checkBoundaries(glm::vec3(9.81, 0.95, -6.032), glm::vec3(-11.58, 0.40, 5.070), RobotPos);
+
+			if (!isRobotInside) {
+
+				RobotPos = oldPos;
+
+			}
 
 			
 
@@ -4063,7 +4138,8 @@ private:
 						RobotPos = glm::vec3(0, -20, 0);
 						machine_state = FirstPersonState;
 						//resetto la rotazione
-						rot_mat = glm::mat4(1);
+						lookYaw = 0;
+						lookPitch = 0;
 						debounce = time;
 
 					}
@@ -4165,6 +4241,7 @@ private:
 
 		if (machine_state == FirstPersonState || machine_state == TitleScreenState) {
 			glm::vec3 Angs = glm::vec3(lookYaw, lookPitch, lookRoll);
+
 
 			CamMat = glm::rotate(glm::mat4(1.0), -Angs.z, glm::vec3(0, 0, 1)) *
 				glm::rotate(glm::mat4(1.0), -Angs.x, glm::vec3(0, 1, 0)) *
@@ -4346,7 +4423,7 @@ private:
 
 
 
-
+	
 
 
     void recreateSwapChain() {
