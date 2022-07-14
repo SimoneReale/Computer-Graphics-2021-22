@@ -659,6 +659,7 @@ struct SingleText {
 
 #define CUSTOM_TEXT 3
 #define COMMANDS_TEXT 5
+#define PRESS_X 6
 
 
 
@@ -668,7 +669,8 @@ std::vector<SingleText> SceneText = {
 	{1, {"Select destination and start", "", "", "", "", "", "", ""}, 0, 0},
 	{1, {"Rocket view", "", "", "", "", "", "", ""}, 0, 0},
 	{1, {"", "", "", "", "", "", "", ""}, 0, 0},
-	{1, {"", "", "", "", "", "", "", ""}, 0, 0}
+	{1, {"", "", "", "", "", "", "", ""}, 0, 0},
+	{1, {"Press X to enter", "", "", "", "", "", "", ""}, 0, 0}
 };
 
 
@@ -881,9 +883,9 @@ struct UniformBufferObject {
 struct GlobalUniformBufferObject {
 
 	alignas(16) glm::vec3 lightDir;
-	alignas(16) glm::vec3 lightPos;
 	alignas(16) glm::vec3 lightColor;
 	alignas(16) glm::vec3 eyePos;
+	alignas(16) glm::vec3 lightPos;
 	alignas(16) glm::vec4 coneInOutDecayExp;
 	alignas(16) glm::vec4 selector;
 
@@ -2186,8 +2188,8 @@ private:
 			std::cout << (TEXTURE_PATH + FName).c_str() << "\n";
 			throw std::runtime_error("failed to load texture image!");
 		}
-		std::cout << FName << " -> size: " << texWidth
-				  << "x" << texHeight << ", ch: " << texChannels <<"\n";
+		/*std::cout << FName << " -> size: " << texWidth
+				  << "x" << texHeight << ", ch: " << texChannels <<"\n";*/
 
 		VkDeviceSize imageSize = texWidth * texHeight * 4;
 		TD.mipLevels = static_cast<uint32_t>(std::floor(
@@ -2599,10 +2601,13 @@ private:
 		if (i == 0) {
 
 
-			for (int k = 0; k < Scene[i].MD.vertices.size() - 2; k++) {
+			for (int k = 0; k < Scene[i].MD.vertices.size() / 3; k++) {
 
 
-				vertex_vector_of_map.push_back(MyVertex(SCALING_MAP * Scene[i].MD.vertices[k], SCALING_MAP * Scene[i].MD.vertices[k + 1], SCALING_MAP * Scene[i].MD.vertices[k + 2]));
+				vertex_vector_of_map.push_back(MyVertex(
+					SCALING_MAP * Scene[i].MD.vertices[k * 3 + 0], 
+					SCALING_MAP * Scene[i].MD.vertices[k * 3 + 1], 
+					SCALING_MAP * Scene[i].MD.vertices[k * 3 + 2]));
 				
 
 			}
@@ -2711,7 +2716,8 @@ private:
 				totLen += strlen(Txt.l[i]);
 			}
 		}
-		std::cout << "Total characters: " << totLen << "\n";
+
+		//std::cout << "Total characters: " << totLen << "\n";
 		
 		MD.vertices.resize(4 * VD.size * totLen);
 		MD.indices.resize(6 * totLen);
@@ -2785,8 +2791,8 @@ private:
 			tpy = 0;
 			Txt.len = ib - Txt.start;
 		}		
-		std::cout << "Text: " << MD.vertices.size()
-				  << ", I: " << MD.indices.size() << "\n";
+		/*std::cout << "Text: " << MD.vertices.size()
+				  << ", I: " << MD.indices.size() << "\n";*/
 	}
 
 	void createVertexBuffer(ModelData& Md) {
@@ -3647,74 +3653,81 @@ private:
 		if (machine_state == FirstPersonState) {
 
 			//aggiorno il testo
-			if (curText != SPACE_STATION && !commands_displayed) {
+			if (curText != PRESS_X && curText != SPACE_STATION && !commands_displayed) {
 
 				framebufferResized = true;
+
+				curText = SPACE_STATION;
 			}
-			curText = SPACE_STATION;
-			
 
 			
 
-			//normal commands
-			/*if (glfwGetKey(window, GLFW_KEY_Q)) {
-				lookRoll -= deltaT * ROT_SPEED;
-			}
-			if (glfwGetKey(window, GLFW_KEY_E)) {
-				lookRoll += deltaT * ROT_SPEED;
-			}*/
 
 
-			/*if (glfwGetKey(window, GLFW_KEY_LEFT)) {
-				CamAng.y += deltaT * ROT_SPEED;
-			}
-			if (glfwGetKey(window, GLFW_KEY_RIGHT)) {
-				CamAng.y -= deltaT * ROT_SPEED;
-			}
-			if (glfwGetKey(window, GLFW_KEY_UP)) {
-				CamAng.x += deltaT * ROT_SPEED;
-			}
-			if (glfwGetKey(window, GLFW_KEY_DOWN)) {
-				CamAng.x -= deltaT * ROT_SPEED;
-			}
-			if (glfwGetKey(window, GLFW_KEY_Q)) {
-				CamAng.z -= deltaT * ROT_SPEED;
-			}
-			if (glfwGetKey(window, GLFW_KEY_E)) {
-				CamAng.z += deltaT * ROT_SPEED;
+			//printo informaizoni varie
+			if (glfwGetKey(window, GLFW_KEY_I)) {
+				if (time - debounce > 0.33) {
+
+					printf("\nRobot pos: (%f %f %f) Cos Pitch %f Cos Yaw%f\n", RobotPos.x, RobotPos.y, RobotPos.z, cos(lookPitch), cos(lookYaw));
+
+					debounce = time;
+
+				}
 			}
 
-			glm::mat3 CamDir = glm::mat3(glm::rotate(glm::mat4(1.0f), CamAng.y, glm::vec3(0.0f, 1.0f, 0.0f))) *
-				glm::mat3(glm::rotate(glm::mat4(1.0f), CamAng.x, glm::vec3(1.0f, 0.0f, 0.0f))) *
-				glm::mat3(glm::rotate(glm::mat4(1.0f), CamAng.z, glm::vec3(0.0f, 0.0f, 1.0f)));
+
+			glm::vec3 vision_position = glm::vec3(-0.95, -20, 0.2155);
+			float max_pitch = 0.95;
+			float min_pitch = 0.64;
+			float max_yaw = 0.58;
+			float min_yaw = -0.48;
 
 
-			if (glfwGetKey(window, GLFW_KEY_A)) {
-				CamPos -= MOVE_SPEED * glm::vec3(glm::rotate(glm::mat4(1.0f), CamAng.y,
-					glm::vec3(0.0f, 1.0f, 0.0f)) * glm::vec4(1, 0, 0, 1)) * deltaT;
+			
+
+
+			
+
+			if (glm::length(RobotPos - vision_position) < 0.5 &&
+				cos(lookPitch) < max_pitch && cos(lookPitch) > min_pitch &&
+				cos(lookYaw) < max_yaw && cos(lookYaw) > min_yaw ) {
+
+				if (time - debounce > 0.2 && curText != PRESS_X) {
+					
+					//printf("\nRobot pos: (%f %f %f) Pitch %f Yaw%f\n", RobotPos.x, RobotPos.y, RobotPos.z, lookPitch, lookYaw);
+					
+					framebufferResized = true;
+					curText = PRESS_X;
+					debounce = time;
+				}
+
+
+				if (glfwGetKey(window, GLFW_KEY_X)) {
+
+					machine_state = SelectPositionsState;
+					//resetto la rotazione
+					lookYaw = 0;
+					lookPitch = 0;
+					RobotPos = glm::vec3(0, 3, 0);
+
+				}
+				
+
 			}
-			if (glfwGetKey(window, GLFW_KEY_D)) {
-				CamPos += MOVE_SPEED * glm::vec3(glm::rotate(glm::mat4(1.0f), CamAng.y,
-					glm::vec3(0.0f, 1.0f, 0.0f)) * glm::vec4(1, 0, 0, 1)) * deltaT;
+			else {
+
+				if (curText != SPACE_STATION && !commands_displayed) {
+
+					framebufferResized = true;
+					curText = SPACE_STATION;
+				}
+
 			}
-			if (glfwGetKey(window, GLFW_KEY_S)) {
-				CamPos += MOVE_SPEED * glm::vec3(glm::rotate(glm::mat4(1.0f), CamAng.y,
-					glm::vec3(0.0f, 1.0f, 0.0f)) * glm::vec4(0, 0, 1, 1)) * deltaT;
-			}
-			if (glfwGetKey(window, GLFW_KEY_W)) {
-				CamPos -= MOVE_SPEED * glm::vec3(glm::rotate(glm::mat4(1.0f), CamAng.y,
-					glm::vec3(0.0f, 1.0f, 0.0f)) * glm::vec4(0, 0, 1, 1)) * deltaT;
-			}
-			if (glfwGetKey(window, GLFW_KEY_F)) {
-				CamPos -= MOVE_SPEED * glm::vec3(0, 1, 0) * deltaT;
-			}
-			if (glfwGetKey(window, GLFW_KEY_R)) {
-				CamPos += MOVE_SPEED * glm::vec3(0, 1, 0) * deltaT;
-			}*/
 
 
 
-
+			glm::vec3 oldPos = RobotPos;
+			
 
 
 			if (glfwGetKey(window, GLFW_KEY_A)) {
@@ -3741,25 +3754,23 @@ private:
 			if (glfwGetKey(window, GLFW_KEY_RIGHT)) {
 				lookYaw += deltaT * ROT_SPEED;
 			}
-			if (glfwGetKey(window, GLFW_KEY_UP)) {
+			if (glfwGetKey(window, GLFW_KEY_DOWN)) {
 				lookPitch += deltaT * ROT_SPEED;
 			}
-			if (glfwGetKey(window, GLFW_KEY_DOWN)) {
+			if (glfwGetKey(window, GLFW_KEY_UP)) {
 				lookPitch -= deltaT * ROT_SPEED;
 			}
 
 
 
+			bool isRobotInside = checkBoundaries(glm::vec3(1.26, -20, -2.613), glm::vec3(-0.87, -20, 3.45), RobotPos);
 
-			if (glfwGetKey(window, GLFW_KEY_X)) {
+			if (!isRobotInside) {
 
-				machine_state = SelectPositionsState;
-				//resetto la rotazione
-				lookYaw = 0;
-				lookPitch = 0;
-				RobotPos = glm::vec3(0, 3, 0);
+				RobotPos = oldPos;
 
 			}
+			
 
 		}
 
@@ -4389,7 +4400,7 @@ private:
 		gubo.lightDir = glm::vec3(cos(glm::radians(135.0f)), sin(glm::radians(135.0f)), 0.0f);
 		gubo.lightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
 		gubo.eyePos = EyePos;
-		gubo.selector = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f);
+		gubo.selector = glm::vec4(1.0f, 0.0f, 0.0f, 0.0f);
 
 		void* data;
 		vkMapMemory(device, globalUniformBuffersMemory[currentImage], 0,
