@@ -881,9 +881,9 @@ struct UniformBufferObject {
 struct GlobalUniformBufferObject {
 
 	alignas(16) glm::vec3 lightDir;
+	alignas(16) glm::vec3 lightPos;
 	alignas(16) glm::vec3 lightColor;
 	alignas(16) glm::vec3 eyePos;
-	alignas(16) glm::vec3 lightPos;
 	alignas(16) glm::vec4 coneInOutDecayExp;
 	alignas(16) glm::vec4 selector;
 
@@ -3718,28 +3718,28 @@ private:
 
 
 			if (glfwGetKey(window, GLFW_KEY_A)) {
-				RobotPos -= MOVE_SPEED * glm::vec3(glm::rotate(glm::mat4(1.0f), lookYaw,
+				RobotPos -= MOVE_SPEED * glm::vec3(glm::rotate(glm::mat4(1.0f), -lookYaw,
 					glm::vec3(0.0f, 1.0f, 0.0f)) * glm::vec4(1, 0, 0, 1)) * deltaT;
 			}
 			if (glfwGetKey(window, GLFW_KEY_D)) {
-				RobotPos += MOVE_SPEED * glm::vec3(glm::rotate(glm::mat4(1.0f), lookYaw,
+				RobotPos += MOVE_SPEED * glm::vec3(glm::rotate(glm::mat4(1.0f), -lookYaw,
 					glm::vec3(0.0f, 1.0f, 0.0f)) * glm::vec4(1, 0, 0, 1)) * deltaT;
 			}
 			if (glfwGetKey(window, GLFW_KEY_W)) {
-				RobotPos -= MOVE_SPEED * glm::vec3(glm::rotate(glm::mat4(1.0f), lookYaw,
+				RobotPos -= MOVE_SPEED * glm::vec3(glm::rotate(glm::mat4(1.0f), -lookYaw,
 					glm::vec3(0.0f, 1.0f, 0.0f)) * glm::vec4(0, 0, 1, 1)) * deltaT;
 			}
 			if (glfwGetKey(window, GLFW_KEY_S)) {
-				RobotPos += MOVE_SPEED * glm::vec3(glm::rotate(glm::mat4(1.0f), lookYaw,
+				RobotPos += MOVE_SPEED * glm::vec3(glm::rotate(glm::mat4(1.0f), -lookYaw,
 					glm::vec3(0.0f, 1.0f, 0.0f)) * glm::vec4(0, 0, 1, 1)) * deltaT;
 			}
 
 
 			if (glfwGetKey(window, GLFW_KEY_LEFT)) {
-				lookYaw += deltaT * ROT_SPEED;
+				lookYaw -= deltaT * ROT_SPEED;
 			}
 			if (glfwGetKey(window, GLFW_KEY_RIGHT)) {
-				lookYaw -= deltaT * ROT_SPEED;
+				lookYaw += deltaT * ROT_SPEED;
 			}
 			if (glfwGetKey(window, GLFW_KEY_UP)) {
 				lookPitch += deltaT * ROT_SPEED;
@@ -4222,6 +4222,7 @@ private:
 
 
 		glm::mat4 CamMat = glm::mat4(1.0);
+		glm::mat4 CamDir = glm::mat4(1.0);
 
 		static int prevCt = -1;
 
@@ -4242,11 +4243,10 @@ private:
 		if (machine_state == FirstPersonState || machine_state == TitleScreenState) {
 			glm::vec3 Angs = glm::vec3(lookYaw, lookPitch, lookRoll);
 
-
-			CamMat = glm::rotate(glm::mat4(1.0), -Angs.z, glm::vec3(0, 0, 1)) *
-				glm::rotate(glm::mat4(1.0), -Angs.x, glm::vec3(0, 1, 0)) *
-				glm::rotate(glm::mat4(1.0), -Angs.y, glm::vec3(1, 0, 0)) *
-				glm::translate(glm::mat4(1.0), -RobotPos);
+			CamDir = glm::mat3(glm::rotate(glm::mat4(1.0f), -lookYaw, glm::vec3(0.0f, 1.0f, 0.0f))) *
+				glm::mat3(glm::rotate(glm::mat4(1.0f), -lookPitch, glm::vec3(1.0f, 0.0f, 0.0f))) *
+				glm::mat3(glm::rotate(glm::mat4(1.0f), -lookRoll, glm::vec3(0.0f, 0.0f, 1.0f)));
+			CamMat = glm::translate(glm::transpose(glm::mat4(CamDir)), -RobotPos);
 			
 		}
 
@@ -4389,7 +4389,7 @@ private:
 		gubo.lightDir = glm::vec3(cos(glm::radians(135.0f)), sin(glm::radians(135.0f)), 0.0f);
 		gubo.lightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
 		gubo.eyePos = EyePos;
-		gubo.selector = glm::vec4(1.0f, 0.0f, 0.0f, 0.0f);
+		gubo.selector = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f);
 
 		void* data;
 		vkMapMemory(device, globalUniformBuffersMemory[currentImage], 0,
@@ -4397,18 +4397,18 @@ private:
 		memcpy(data, &gubo, sizeof(gubo));
 		vkUnmapMemory(device, globalUniformBuffersMemory[currentImage]);
 
-		//spotlight in space station
-		gubo.lightDir = glm::vec3(0.0f, 1.0f, 0.0f);
+		/* spotlight in space station
+		gubo.lightDir = glm::vec3(0.0f, -1.0f, 0.0f);
 		gubo.lightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
 		gubo.lightPos = glm::vec3(-1.5f, -20.0f, 0.0f);
 		gubo.eyePos = EyePos;
-		gubo.selector = glm::vec4(0.0f, 0.0f, 1.0f, 0.0f);
-		gubo.coneInOutDecayExp = glm::vec4(0.9f, 0.92f, 2.0f, 0.0f);
+		gubo.selector = glm::vec4(0.0f, 0.0f, 1.0f, 1.0f);
+		gubo.coneInOutDecayExp = glm::vec4(0.9f, 0.92f, 2.0f, 0.0f); 
 
 		vkMapMemory(device, globalUniformBuffersMemory[currentImage], 0,
 			sizeof(gubo), 0, &data);
 		memcpy(data, &gubo, sizeof(gubo));
-		vkUnmapMemory(device, globalUniformBuffersMemory[currentImage]);
+		vkUnmapMemory(device, globalUniformBuffersMemory[currentImage]); */
 
 		// updates SkyBox uniforms
 		UniformBufferObject ubo{};
@@ -4419,7 +4419,7 @@ private:
 			sizeof(ubo), 0, &data);
 		memcpy(data, &ubo, sizeof(ubo));
 		vkUnmapMemory(device, SkyBoxUniformBuffersMemory[currentImage]);
-		}
+	}
 
 
 
