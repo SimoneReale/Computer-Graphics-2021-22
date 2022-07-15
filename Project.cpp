@@ -27,6 +27,17 @@
 
 #include <chrono>
 
+
+
+//macro luci
+#define ORENNAYAR 1
+#define PHONG 0
+
+
+
+
+
+
 enum PerturbationLevel
 {
 	NO_WIND = 0,
@@ -882,11 +893,16 @@ struct UniformBufferObject {
 
 struct GlobalUniformBufferObject {
 
-	alignas(16) glm::vec3 lightDir;
-	alignas(16) glm::vec3 lightColor;
 	alignas(16) glm::vec3 eyePos;
-	alignas(16) glm::vec3 lightPos;
-	alignas(16) glm::vec4 coneInOutDecayExp;
+
+	alignas(16) glm::vec3 lightDir_directional;
+	alignas(16) glm::vec3 lightColor_directional;
+
+	alignas(16) glm::vec3 lightDir_spotlight;
+	alignas(16) glm::vec3 lightColor_spotlight;
+	alignas(16) glm::vec3 lightPos_spotlight;
+	alignas(16) glm::vec4 coneInOutDecayExp_spotlight;
+
 	alignas(16) glm::vec4 selector;
 
 
@@ -3614,11 +3630,18 @@ private:
 		static int oldCurText = VOID_TEXT;
 		static bool commands_displayed = false;
 
+		//selettore per le luci
+		static glm::vec4 selector = glm::vec4(1, 0, 0, 0);
+
+
+
 
 
 
 		if (machine_state == TitleScreenState) {
 
+			//seleziono Oren Nayar
+			selector = glm::vec4(ORENNAYAR, 0, 0, 0);
 
 			//aggiorno il testo
 			if (curText != VOID_TEXT) {
@@ -3652,6 +3675,10 @@ private:
 
 		if (machine_state == FirstPersonState) {
 
+
+			selector = glm::vec4(PHONG, 0, 0, 0);
+
+
 			//aggiorno il testo
 			if (curText != PRESS_X && curText != SPACE_STATION && !commands_displayed) {
 
@@ -3681,11 +3708,6 @@ private:
 			float min_pitch = 0.64;
 			float max_yaw = 0.58;
 			float min_yaw = -0.48;
-
-
-			
-
-
 			
 
 			if (glm::length(RobotPos - vision_position) < 0.5 &&
@@ -3778,7 +3800,8 @@ private:
 
 		if (machine_state == SelectPositionsState) {
 			
-			
+			selector = glm::vec4(ORENNAYAR, 0, 0, 0);
+
 			glm::vec3 oldPos = RobotPos;
 
 			//aggiorno il testo
@@ -3931,6 +3954,8 @@ private:
 
 		if (machine_state == ThirdPersonRocketState) {
 			
+			selector = glm::vec4(ORENNAYAR, 0, 0, 0);
+
 			//aggiorno il testo e posiziono il razzo
 			if (curText != CUSTOM_TEXT && curText != ROCKET_VIEW && !commands_displayed) {
 
@@ -4397,10 +4422,17 @@ private:
 
 		// updates global uniforms
 		GlobalUniformBufferObject gubo{};
-		gubo.lightDir = glm::vec3(cos(glm::radians(135.0f)), sin(glm::radians(135.0f)), 0.0f);
-		gubo.lightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
 		gubo.eyePos = EyePos;
-		gubo.selector = glm::vec4(1.0f, 0.0f, 0.0f, 0.0f);
+
+		gubo.lightDir_directional = glm::vec3(cos(glm::radians(135.0f)), sin(glm::radians(135.0f)), 0.0f);
+		gubo.lightColor_directional = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
+
+		gubo.lightDir_spotlight = glm::vec3(0.0f, 1.0f, 0.0f);
+		gubo.lightColor_spotlight = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f);
+		gubo.lightPos_spotlight = glm::vec3(-1.5f, -20.0f, 0.0f);
+		gubo.coneInOutDecayExp_spotlight = glm::vec4(0.9f, 0.92f, 2.0f, 0.0f);
+		
+		gubo.selector = selector;
 
 		void* data;
 		vkMapMemory(device, globalUniformBuffersMemory[currentImage], 0,
