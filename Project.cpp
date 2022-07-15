@@ -4102,7 +4102,6 @@ private:
 
 				if (time - debounce > 0.33) {
 
-
 					launch = true;
 					debounce = time;
 
@@ -4149,6 +4148,7 @@ private:
 						RobotPos = glm::vec3(0, -20, 0);
 						machine_state = FirstPersonState;
 						//resetto la rotazione
+						rot_mat = glm::mat4(1);
 						lookYaw = 0;
 						lookPitch = 0;
 						debounce = time;
@@ -4609,8 +4609,8 @@ int main() {
         return EXIT_FAILURE;
     }
 
-	std::cout << "\n";
-	system("pause");
+	/*std::cout << "\n";
+	system("pause");*/
 
 
     return EXIT_SUCCESS;
