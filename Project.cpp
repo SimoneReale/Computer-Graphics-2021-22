@@ -4429,9 +4429,9 @@ private:
 		gubo.lightColor_directional = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
 
 		gubo.lightDir_spotlight = glm::vec3(0.0f, 1.0f, 0.0f);
-		gubo.lightColor_spotlight = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f);
-		gubo.lightPos_spotlight = glm::vec3(-1.5f, -20.0f, 0.0f);
-		gubo.coneInOutDecayExp_spotlight = glm::vec4(0.9f, 0.92f, 2.0f, 0.0f);
+		gubo.lightColor_spotlight = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
+		gubo.lightPos_spotlight = glm::vec3(-1.75f, -20.0f, 0.0f);
+		gubo.coneInOutDecayExp_spotlight = glm::vec4(0.8f, 0.8f, 3.5f, 0.0f);
 		
 		gubo.selector = selector;
 
