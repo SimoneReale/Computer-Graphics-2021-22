@@ -600,6 +600,7 @@ struct Model {
 #define TERRAIN 0
 #define TITLE 1
 #define CHARACTER 2
+#define SPOTLIGHT 3
 #define TARGET 4
 #define ROOM 5
 #define MOON 6
@@ -617,7 +618,7 @@ const std::vector<Model> SceneToLoad = {
 	{"terrain.obj", "terrain.jpg", {0,0,0}, SCALING_MAP, Flat},
 	{"title.obj", "white.jpg", {0,0,0}, 0.01, Flat},
 	{"rocket2.obj", "metal_panel.jpg", {0,0,0}, 0.027, Flat},
-	{"title.obj", "white.png", {0,0,0}, 0.0, Flat},
+	{"Spotlight.obj", "spotlight.png", {0.0434f, -20.0f, -0.17f}, 0.0, Flat},
 	{"target.obj", "red.jpg", {0,0,0}, 0.05, Flat},
 	{"room.obj", "black.jpg", {0, -20, 0}, 0.1, Flat},
 	{"moon.obj", "moon.png", {0, 0, 0}, 1, Flat},
@@ -4282,6 +4283,7 @@ private:
 			CamDir = glm::mat3(glm::rotate(glm::mat4(1.0f), -lookYaw, glm::vec3(0.0f, 1.0f, 0.0f))) *
 				glm::mat3(glm::rotate(glm::mat4(1.0f), -lookPitch, glm::vec3(1.0f, 0.0f, 0.0f))) *
 				glm::mat3(glm::rotate(glm::mat4(1.0f), -lookRoll, glm::vec3(0.0f, 0.0f, 1.0f)));
+
 			CamMat = glm::translate(glm::transpose(glm::mat4(CamDir)), -RobotPos);
 			
 		}
@@ -4398,8 +4400,13 @@ private:
 				}
 			}
 
-			if (j == ROOM || j == DESK) {
+			if (j == ROOM || j == DESK || j == SPOTLIGHT) {
 				ubo.mMat = glm::translate(glm::mat4(1), SceneToLoad[j].pos);
+
+				if (j == SPOTLIGHT) {
+
+					ubo.mMat = glm::scale(ubo.mMat, glm::vec3(0.0));
+				}
 
 				if (machine_state != FirstPersonState) {
 
@@ -4429,9 +4436,9 @@ private:
 		gubo.lightColor_directional = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
 
 		gubo.lightDir_spotlight = glm::vec3(0.0f, 1.0f, 0.0f);
-		gubo.lightColor_spotlight = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
-		gubo.lightPos_spotlight = glm::vec3(-1.75f, -20.0f, 0.0f);
-		gubo.coneInOutDecayExp_spotlight = glm::vec4(0.8f, 0.8f, 3.5f, 0.0f);
+		gubo.lightColor_spotlight = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f);
+		gubo.lightPos_spotlight = glm::vec3(0.0434f, -20.0f, -0.17f);
+		gubo.coneInOutDecayExp_spotlight = glm::vec4(0.7f, 1.0f, 2.0f, 2.0f);
 		
 		gubo.selector = selector;
 
@@ -4441,18 +4448,6 @@ private:
 		memcpy(data, &gubo, sizeof(gubo));
 		vkUnmapMemory(device, globalUniformBuffersMemory[currentImage]);
 
-		/* spotlight in space station
-		gubo.lightDir = glm::vec3(0.0f, -1.0f, 0.0f);
-		gubo.lightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
-		gubo.lightPos = glm::vec3(-1.5f, -20.0f, 0.0f);
-		gubo.eyePos = EyePos;
-		gubo.selector = glm::vec4(0.0f, 0.0f, 1.0f, 1.0f);
-		gubo.coneInOutDecayExp = glm::vec4(0.9f, 0.92f, 2.0f, 0.0f); 
-
-		vkMapMemory(device, globalUniformBuffersMemory[currentImage], 0,
-			sizeof(gubo), 0, &data);
-		memcpy(data, &gubo, sizeof(gubo));
-		vkUnmapMemory(device, globalUniformBuffersMemory[currentImage]); */
 
 		// updates SkyBox uniforms
 		UniformBufferObject ubo{};
