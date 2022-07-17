@@ -4332,10 +4332,11 @@ private:
 			}
 
 			if (j == CHARACTER) {
-				glm::mat4 RobWM = glm::translate(glm::mat4(1), RobotPos) * rot_mat * glm::rotate(glm::mat4(1), lookYaw, glm::vec3(0, 1, 0));
+				glm::mat4 RobWM = glm::translate(glm::mat4(1), RobotPos) * rot_mat;
 				ubo.mMat = glm::rotate(RobWM, 1.5708f, glm::vec3(0, 1, 0)) * ubo.mMat;
 				FollowerTargetPos = RobWM * glm::translate(glm::mat4(1), FollowerDeltaTarget) *
 					glm::rotate(glm::mat4(1), lookPitch, glm::vec3(1, 0, 0)) *
+					glm::rotate(glm::mat4(1), lookYaw, glm::vec3(0, 1, 0)) *
 					glm::vec4(0.0f, 0.0f, followerDist, 1.0f);
 
 				if (machine_state == SelectPositionsState || machine_state == FirstPersonState || machine_state == TitleScreenState) {
