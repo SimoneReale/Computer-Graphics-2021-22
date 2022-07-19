@@ -581,15 +581,21 @@ const std::vector<const char*> deviceExtensions = {
 	const bool Verbose = true;
 #endif
 
-enum PipelineType {Flat, Wire};
+
+enum PipelineType { Flat, Wire };
 
 struct Model {
-	const char *ObjFile;
-	const char *TextureFile;
+	const char* ObjFile;
+	const char* TextureFile;
 	const glm::vec3 pos;
 	const float scale;
 	const PipelineType pt;
 };
+
+
+
+
+
 
 
 #define SCALING_MAP 4
@@ -683,12 +689,6 @@ std::vector<SingleText> SceneText = {
 	{1, {"", "", "", "", "", "", "", ""}, 0, 0},
 	{1, {"Press X to enter", "", "", "", "", "", "", ""}, 0, 0}
 };
-
-
-
-
-
-
 
 
 
@@ -883,8 +883,7 @@ std::vector<FontDef> Fonts = {{73,{{0,0,0,0,0,0,21},{116,331,18,61,4,4,21},{379,
 {902,121,10,7,-3,-1,6},{842,0,15,14,-3,2,9},{842,111,14,17,-2,-1,9},{858,123,14,14,-3,2,8},{842,129,14,17,-3,-1,9},{873,0,14,14,-3,2,9},{888,138,10,16,-3,-1,5},{858,0,14,17,-3,2,9},{888,0,13,16,-2,-1,9},{914,0,8,16,-2,-1,4},{807,134,10,20,-4,-1,4},{888,17,13,16,-2,-1,8},{914,17,8,16,-2,-1,4},{768,89,18,13,-2,2,14},{873,141,13,13,-2,2,9},{873,15,14,14,-3,2,9},{858,18,14,17,-2,2,9},{858,36,14,17,-3,2,9},{902,107,10,13,-2,2,6},{873,30,14,14,-3,2,8},{902,90,10,16,-3,0,5},{888,51,13,14,-2,2,9},{873,45,14,13,-3,2,8},{789,85,17,13,-3,2,12},{873,59,14,13,-3,2,8},{858,54,14,17,-3,2,8},{873,73,14,13,-3,2,8},{888,79,12,20,-4,-1,6},{914,85,8,16,-2,-1,5},{888,100,12,20,-3,-1,6},{825,15,16,8,-3,5,10},{873,112,14,10,-2,4,10}}}};
 
 
-// Questi dovrebbero essere definibili a piacimento e nel modo piu' semplice possibile,
-// traferirsi nello shader
+
 struct UniformBufferObject {
 	alignas(16) glm::mat4 mvpMat;
 	alignas(16) glm::mat4 mMat;
@@ -1027,7 +1026,7 @@ struct SceneModel {
 class ProjectCG {
 public:
     void run() {
-        initWindow();
+        setWindowParameters();
         initVulkan();
         mainLoop();
         cleanup();
@@ -1127,15 +1126,7 @@ private:
 	int curText = 0;
 	
 	
-    void initWindow() {
-        glfwInit();
-
-        glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-
-        window = glfwCreateWindow(WIDTH, HEIGHT, "3D MISSILE SIMULATOR", nullptr, nullptr);
-        glfwSetWindowUserPointer(window, this);
-        glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
-    }
+	
 
 	static void framebufferResizeCallback(GLFWwindow* window, int width, int height) {
 		auto app = reinterpret_cast<ProjectCG*>
@@ -1736,45 +1727,6 @@ private:
 		createTextDescriptorSetLayout();
 	}
 	
-	void createPhongDescriptorSetLayout() {
-		VkDescriptorSetLayoutBinding uboLayoutBinding{};
-		uboLayoutBinding.binding = 0;
-		uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		uboLayoutBinding.descriptorCount = 1;
-		uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-		uboLayoutBinding.pImmutableSamplers = nullptr;
-		
-		VkDescriptorSetLayoutBinding samplerLayoutBinding{};
-		samplerLayoutBinding.binding = 1;
-		samplerLayoutBinding.descriptorType =
-						VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		samplerLayoutBinding.descriptorCount = 1;
-		samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-		samplerLayoutBinding.pImmutableSamplers = nullptr;
-		
-		VkDescriptorSetLayoutBinding globalUboLayoutBinding{};
-		globalUboLayoutBinding.binding = 2;
-		globalUboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		globalUboLayoutBinding.descriptorCount = 1;
-		globalUboLayoutBinding.stageFlags = VK_SHADER_STAGE_ALL_GRAPHICS;
-		globalUboLayoutBinding.pImmutableSamplers = nullptr;
-
-		std::array<VkDescriptorSetLayoutBinding, 3> bindings =
-							{uboLayoutBinding, samplerLayoutBinding, globalUboLayoutBinding};
-		
-		VkDescriptorSetLayoutCreateInfo layoutInfo{};
-		layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-		layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
-		layoutInfo.pBindings = bindings.data();
-		
-		VkResult result = vkCreateDescriptorSetLayout(device, &layoutInfo,
-									nullptr, &PhongDescriptorSetLayout);
-		if (result != VK_SUCCESS) {
-			PrintVkError(result);
-			throw std::runtime_error("failed to create descriptor set layout!");
-		}
-	}
-
 	void createSkyBoxDescriptorSetLayout() {
 		VkDescriptorSetLayoutBinding uboLayoutBinding{};
 		uboLayoutBinding.binding = 0;
@@ -1839,23 +1791,117 @@ private:
 		}
 	}
 
+	void createSkyBoxDescriptorSets() {
+		std::vector<VkDescriptorSetLayout> layouts(swapChainImages.size(),
+			SkyBoxDescriptorSetLayout);
+		VkDescriptorSetAllocateInfo allocInfo{};
+		allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+		allocInfo.descriptorPool = descriptorPool;
+		allocInfo.descriptorSetCount = static_cast<uint32_t>(swapChainImages.size());
+		allocInfo.pSetLayouts = layouts.data();
+
+		SkyBoxDescriptorSets.resize(swapChainImages.size());
+
+		VkResult result = vkAllocateDescriptorSets(device, &allocInfo,
+			SkyBoxDescriptorSets.data());
+		if (result != VK_SUCCESS) {
+			PrintVkError(result);
+			throw std::runtime_error("failed to allocate Skybox descriptor sets!");
+		}
+
+		for (size_t k = 0; k < swapChainImages.size(); k++) {
+			VkDescriptorBufferInfo bufferInfo{};
+			bufferInfo.buffer = SkyBoxUniformBuffers[k];
+			bufferInfo.offset = 0;
+			bufferInfo.range = sizeof(UniformBufferObject);
+
+			VkDescriptorImageInfo imageInfo{};
+			imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+			imageInfo.imageView = SkyBox.TD.textureImageView;
+			imageInfo.sampler = SkyBox.TD.textureSampler;
+
+			std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
+			descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+			descriptorWrites[0].dstSet = SkyBoxDescriptorSets[k];
+			descriptorWrites[0].dstBinding = 0;
+			descriptorWrites[0].dstArrayElement = 0;
+			descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+			descriptorWrites[0].descriptorCount = 1;
+			descriptorWrites[0].pBufferInfo = &bufferInfo;
+
+			descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+			descriptorWrites[1].dstSet = SkyBoxDescriptorSets[k];
+			descriptorWrites[1].dstBinding = 1;
+			descriptorWrites[1].dstArrayElement = 0;
+			descriptorWrites[1].descriptorType =
+				VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+			descriptorWrites[1].descriptorCount = 1;
+			descriptorWrites[1].pImageInfo = &imageInfo;
+
+			vkUpdateDescriptorSets(device,
+				static_cast<uint32_t>(descriptorWrites.size()),
+				descriptorWrites.data(), 0, nullptr);
+		}
+	}
+	void createTextDescriptorSets() {
+		std::vector<VkDescriptorSetLayout> layouts(swapChainImages.size(),
+			TextDescriptorSetLayout);
+		VkDescriptorSetAllocateInfo allocInfo{};
+		allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+		allocInfo.descriptorPool = descriptorPool;
+		allocInfo.descriptorSetCount = static_cast<uint32_t>(swapChainImages.size());
+		allocInfo.pSetLayouts = layouts.data();
+
+		TextDescriptorSets.resize(swapChainImages.size());
+
+		VkResult result = vkAllocateDescriptorSets(device, &allocInfo,
+			TextDescriptorSets.data());
+		if (result != VK_SUCCESS) {
+			PrintVkError(result);
+			throw std::runtime_error("failed to allocate Text descriptor sets!");
+		}
+
+		for (size_t k = 0; k < swapChainImages.size(); k++) {
+			VkDescriptorBufferInfo bufferInfo{};
+			bufferInfo.buffer = TextUniformBuffers[k];
+			bufferInfo.offset = 0;
+			bufferInfo.range = sizeof(UniformBufferObject);
+
+			VkDescriptorImageInfo imageInfo{};
+			imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+			imageInfo.imageView = SText.TD.textureImageView;
+			imageInfo.sampler = SText.TD.textureSampler;
+
+			std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
+			descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+			descriptorWrites[0].dstSet = TextDescriptorSets[k];
+			descriptorWrites[0].dstBinding = 0;
+			descriptorWrites[0].dstArrayElement = 0;
+			descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+			descriptorWrites[0].descriptorCount = 1;
+			descriptorWrites[0].pBufferInfo = &bufferInfo;
+
+			descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+			descriptorWrites[1].dstSet = TextDescriptorSets[k];
+			descriptorWrites[1].dstBinding = 1;
+			descriptorWrites[1].dstArrayElement = 0;
+			descriptorWrites[1].descriptorType =
+				VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+			descriptorWrites[1].descriptorCount = 1;
+			descriptorWrites[1].pImageInfo = &imageInfo;
+
+			vkUpdateDescriptorSets(device,
+				static_cast<uint32_t>(descriptorWrites.size()),
+				descriptorWrites.data(), 0, nullptr);
+		}
+	}
+
  	void createPipelines() {
  		createPhongPipeline();
  		createSkyBoxPipeline();
  		createTextPipeline();
  	}
  	
- 	void createPhongPipeline() {
- 		createPipeline("PhongVert.spv", "PhongFrag.spv",
- 					    PhongPipelineLayout, PhongPipeline,
- 					    PhongDescriptorSetLayout, VK_COMPARE_OP_LESS, VK_POLYGON_MODE_FILL,
- 					    1.0, VK_CULL_MODE_BACK_BIT, false, phongAndSkyBoxVertices);
- 		createPipeline("PhongVert.spv", "PhongFrag.spv",
- 					    PhongWirePipelineLayout, PhongWirePipeline,
- 					    PhongDescriptorSetLayout, VK_COMPARE_OP_LESS, VK_POLYGON_MODE_LINE,
- 					    1.0, VK_CULL_MODE_NONE, false, phongAndSkyBoxVertices);				    
- 	}
-
  	void createSkyBoxPipeline() {
  		createPipeline("SkyBoxVert.spv", "SkyBoxFrag.spv",
  					    SkyBoxPipelineLayout, SkyBoxPipeline,
@@ -2595,51 +2641,7 @@ private:
 		}
 	}
 
-	void loadModels() {
-		Scene.resize(SceneToLoad.size());
-		int i = 0;
-
-		for (const auto& M : SceneToLoad) {
-			loadModelWithTexture(M, i);
-			i++;
-		}
-		
-		loadSkyBox();
-		createTexts();
-				
-	}
 	
-	void loadModelWithTexture(const Model& M, int i) {
-		loadMesh(M.ObjFile, Scene[i].MD, phongAndSkyBoxVertices);
-
-		
-		//MODIFICAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
-		if (i == 0) {
-
-
-			for (int k = 0; k < Scene[i].MD.vertices.size() / 3; k++) {
-
-
-				vertex_vector_of_map.push_back(MyVertex(
-					SCALING_MAP * Scene[i].MD.vertices[k * 3 + 0], 
-					SCALING_MAP * Scene[i].MD.vertices[k * 3 + 1], 
-					SCALING_MAP * Scene[i].MD.vertices[k * 3 + 2]));
-				
-
-			}
-
-			//vertex_vector_of_map.initVector();
-
-
-		}
-
-		createVertexBuffer(Scene[i].MD);
-		createIndexBuffer(Scene[i].MD);
-		
-		createTextureImage(M.TextureFile, Scene[i].TD);
-		createTextureImageView(Scene[i].TD);
-		createTextureSampler(Scene[i].TD);
-	}
 	
 	void loadSkyBox() {
 		loadMesh(SkyBoxToLoad.ObjFile, SkyBox.MD, phongAndSkyBoxVertices);
@@ -2661,69 +2663,6 @@ private:
 		createTextureSampler(SText.TD);
 	}
 	
-	//MODIFICA
-	void loadMesh(const char* FName, ModelData& MD, VertexDescriptor &VD) {
-		tinyobj::attrib_t attrib;
-		std::vector<tinyobj::shape_t> shapes;
-		std::vector<tinyobj::material_t> materials;
-		std::string warn, err;
-		
-
-		
-
-		if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, 
-						(MODEL_PATH + FName).c_str())) {
-			throw std::runtime_error(warn + err);
-		}
-		
-		MD.vertDesc = &VD;
-
-		std::cout << FName << "\n";
-
-		std::vector<float> vertex{};
-		vertex.resize(VD.size);
-
-
-		
-
-//		std::unordered_map<std::vector<float>, uint32_t> uniqueVertices{};
-		for (const auto& shape : shapes) {
-			for (const auto& index : shape.mesh.indices) {
-				
-
-				vertex[VD.deltaPos + 0] = attrib.vertices[3 * index.vertex_index + 0];
-				vertex[VD.deltaPos + 1] = attrib.vertices[3 * index.vertex_index + 1];
-				vertex[VD.deltaPos + 2] = attrib.vertices[3 * index.vertex_index + 2];
-
-				if (/*FName != "title.obj" &&*/ /*FName != "target.obj" &&*/ FName != "Walls.obj") {
-					vertex[VD.deltaTexCoord + 0] = attrib.texcoords[2 * index.texcoord_index + 0];
-					vertex[VD.deltaTexCoord + 1] = 1 - attrib.texcoords[2 * index.texcoord_index + 1];
-					vertex[VD.deltaNormal + 0] = attrib.normals[3 * index.normal_index + 0];
-					vertex[VD.deltaNormal + 1] = attrib.normals[3 * index.normal_index + 1];
-					vertex[VD.deltaNormal + 2] = attrib.normals[3 * index.normal_index + 2];
-				}
-
-				
-				
-//				if (uniqueVertices.count(vertex) == 0) {
-					int j = MD.vertices.size() / VD.size;
-//					uniqueVertices[vertex] =
-//							static_cast<uint32_t>(j);
-					int s = MD.vertices.size();
-					MD.vertices.resize(s + VD.size);
-					for(int k = 0; k < VD.size; k++) {
-						MD.vertices[s+k] = vertex[k];
-					}
-/**/				MD.indices.push_back(j);
-//				}
-				
-//				MD.indices.push_back(uniqueVertices[vertex]);
-			}
-		}
-		
-		std::cout << FName << " -> V: " << MD.vertices.size()
-				  << ", I: " << MD.indices.size() << "\n";
-	}
 	void createTextMesh(ModelData& MD, VertexDescriptor &VD) {
 		MD.vertDesc = &VD;
 		int totLen = 0;
@@ -2956,6 +2895,225 @@ private:
 		vkFreeMemory(device, stagingBufferMemory, nullptr);
 	}
 
+
+	void createSyncObjects() {
+		imageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
+		renderFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
+		inFlightFences.resize(MAX_FRAMES_IN_FLIGHT);
+		imagesInFlight.resize(swapChainImages.size(), VK_NULL_HANDLE);
+
+		VkSemaphoreCreateInfo semaphoreInfo{};
+		semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+
+		VkFenceCreateInfo fenceInfo{};
+		fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+		fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+
+		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+			VkResult result1 = vkCreateSemaphore(device, &semaphoreInfo, nullptr,
+				&imageAvailableSemaphores[i]);
+			VkResult result2 = vkCreateSemaphore(device, &semaphoreInfo, nullptr,
+				&renderFinishedSemaphores[i]);
+			VkResult result3 = vkCreateFence(device, &fenceInfo, nullptr,
+				&inFlightFences[i]);
+			if (result1 != VK_SUCCESS ||
+				result2 != VK_SUCCESS ||
+				result3 != VK_SUCCESS) {
+				PrintVkError(result1);
+				PrintVkError(result2);
+				PrintVkError(result3);
+				throw std::runtime_error("failed to create synchronization objects for a frame!!");
+			}
+		}
+	}
+
+	void drawFrame() {
+		vkWaitForFences(device, 1, &inFlightFences[currentFrame],
+			VK_TRUE, UINT64_MAX);
+
+		uint32_t imageIndex;
+
+		VkResult result = vkAcquireNextImageKHR(device, swapChain, UINT64_MAX,
+			imageAvailableSemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
+
+		if (result == VK_ERROR_OUT_OF_DATE_KHR) {
+			recreateSwapChain();
+			return;
+		}
+		else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
+			throw std::runtime_error("failed to acquire swap chain image!");
+		}
+
+		if (imagesInFlight[imageIndex] != VK_NULL_HANDLE) {
+			vkWaitForFences(device, 1, &imagesInFlight[imageIndex],
+				VK_TRUE, UINT64_MAX);
+		}
+		imagesInFlight[imageIndex] = inFlightFences[currentFrame];
+
+		updateUniformBuffer(imageIndex);
+
+		VkSubmitInfo submitInfo{};
+		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+		VkSemaphore waitSemaphores[] = { imageAvailableSemaphores[currentFrame] };
+		VkPipelineStageFlags waitStages[] =
+		{ VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
+		submitInfo.waitSemaphoreCount = 1;
+		submitInfo.pWaitSemaphores = waitSemaphores;
+		submitInfo.pWaitDstStageMask = waitStages;
+		submitInfo.commandBufferCount = 1;
+		submitInfo.pCommandBuffers = &commandBuffers[imageIndex];
+		VkSemaphore signalSemaphores[] = { renderFinishedSemaphores[currentFrame] };
+		submitInfo.signalSemaphoreCount = 1;
+		submitInfo.pSignalSemaphores = signalSemaphores;
+
+		vkResetFences(device, 1, &inFlightFences[currentFrame]);
+
+		if (vkQueueSubmit(graphicsQueue, 1, &submitInfo,
+			inFlightFences[currentFrame]) != VK_SUCCESS) {
+			throw std::runtime_error("failed to submit draw command buffer!");
+		}
+
+		VkPresentInfoKHR presentInfo{};
+		presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+		presentInfo.waitSemaphoreCount = 1;
+		presentInfo.pWaitSemaphores = signalSemaphores;
+
+		VkSwapchainKHR swapChains[] = { swapChain };
+		presentInfo.swapchainCount = 1;
+		presentInfo.pSwapchains = swapChains;
+		presentInfo.pImageIndices = &imageIndex;
+		presentInfo.pResults = nullptr; // Optional
+
+		result = vkQueuePresentKHR(presentQueue, &presentInfo);
+
+		if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR ||
+			framebufferResized) {
+			framebufferResized = false;
+			recreateSwapChain();
+		}
+		else if (result != VK_SUCCESS) {
+			throw std::runtime_error("failed to present swap chain image!");
+		}
+
+		currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
+	}
+
+	void recreateSwapChain() {
+		int width = 0, height = 0;
+		glfwGetFramebufferSize(window, &width, &height);
+
+		while (width == 0 || height == 0) {
+			glfwGetFramebufferSize(window, &width, &height);
+			glfwWaitEvents();
+		}
+
+		vkDeviceWaitIdle(device);
+
+		cleanupSwapChain();
+
+		createSwapChain();
+		createImageViews();
+		createRenderPass();
+		createPipelines();
+		createColorResources();
+		createDepthResources();
+		createFramebuffers();
+		createUniformBuffers();
+		createDescriptorPool();
+		createDescriptorSets();
+		createCommandBuffers();
+	}
+
+	void cleanupSwapChain() {
+		vkDestroyImageView(device, colorImageView, nullptr);
+		vkDestroyImage(device, colorImage, nullptr);
+		vkFreeMemory(device, colorImageMemory, nullptr);
+
+		vkDestroyImageView(device, depthImageView, nullptr);
+		vkDestroyImage(device, depthImage, nullptr);
+		vkFreeMemory(device, depthImageMemory, nullptr);
+
+		for (size_t i = 0; i < swapChainFramebuffers.size(); i++) {
+			vkDestroyFramebuffer(device, swapChainFramebuffers[i], nullptr);
+		}
+
+		vkFreeCommandBuffers(device, commandPool,
+			static_cast<uint32_t>(commandBuffers.size()), commandBuffers.data());
+
+		vkDestroyPipeline(device, PhongPipeline, nullptr);
+		vkDestroyPipeline(device, PhongWirePipeline, nullptr);
+		vkDestroyPipelineLayout(device, PhongPipelineLayout, nullptr);
+		vkDestroyPipelineLayout(device, PhongWirePipelineLayout, nullptr);
+
+		vkDestroyPipeline(device, SkyBoxPipeline, nullptr);
+		vkDestroyPipelineLayout(device, SkyBoxPipelineLayout, nullptr);
+
+		vkDestroyPipeline(device, TextPipeline, nullptr);
+		vkDestroyPipelineLayout(device, TextPipelineLayout, nullptr);
+
+		vkDestroyRenderPass(device, renderPass, nullptr);
+
+		for (size_t i = 0; i < swapChainImageViews.size(); i++) {
+			vkDestroyImageView(device, swapChainImageViews[i], nullptr);
+		}
+
+		vkDestroySwapchainKHR(device, swapChain, nullptr);
+
+		for (size_t i = 0; i < swapChainImages.size() * Scene.size(); i++) {
+			vkDestroyBuffer(device, uniformBuffers[i], nullptr);
+			vkFreeMemory(device, uniformBuffersMemory[i], nullptr);
+		}
+		for (size_t i = 0; i < swapChainImages.size(); i++) {
+			vkDestroyBuffer(device, globalUniformBuffers[i], nullptr);
+			vkFreeMemory(device, globalUniformBuffersMemory[i], nullptr);
+		}
+		for (size_t i = 0; i < swapChainImages.size(); i++) {
+			vkDestroyBuffer(device, SkyBoxUniformBuffers[i], nullptr);
+			vkFreeMemory(device, SkyBoxUniformBuffersMemory[i], nullptr);
+		}
+		for (size_t i = 0; i < swapChainImages.size(); i++) {
+			vkDestroyBuffer(device, TextUniformBuffers[i], nullptr);
+			vkFreeMemory(device, TextUniformBuffersMemory[i], nullptr);
+		}
+
+		vkDestroyDescriptorPool(device, descriptorPool, nullptr);
+	}
+
+	void createDescriptorPool() {
+		std::array<VkDescriptorPoolSize, 9> poolSizes{};
+		poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		poolSizes[0].descriptorCount = static_cast<uint32_t>(swapChainImages.size() * Scene.size());
+		poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		poolSizes[1].descriptorCount = static_cast<uint32_t>(swapChainImages.size() * Scene.size());
+		poolSizes[2].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		poolSizes[2].descriptorCount = static_cast<uint32_t>(swapChainImages.size() * Scene.size());
+		poolSizes[3].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		poolSizes[3].descriptorCount = static_cast<uint32_t>(swapChainImages.size());
+		poolSizes[4].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		poolSizes[4].descriptorCount = static_cast<uint32_t>(swapChainImages.size());
+		poolSizes[5].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		poolSizes[5].descriptorCount = static_cast<uint32_t>(swapChainImages.size());
+		poolSizes[6].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		poolSizes[6].descriptorCount = static_cast<uint32_t>(swapChainImages.size());
+		poolSizes[7].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		poolSizes[7].descriptorCount = static_cast<uint32_t>(swapChainImages.size());
+		poolSizes[8].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		poolSizes[8].descriptorCount = static_cast<uint32_t>(swapChainImages.size());
+
+		VkDescriptorPoolCreateInfo poolInfo{};
+		poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+		poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
+		poolInfo.pPoolSizes = poolSizes.data();
+		poolInfo.maxSets = static_cast<uint32_t>(swapChainImages.size() * (Scene.size() + 2));
+
+		VkResult result = vkCreateDescriptorPool(device, &poolInfo, nullptr,
+			&descriptorPool);
+		if (result != VK_SUCCESS) {
+			PrintVkError(result);
+			throw std::runtime_error("failed to create descriptor pool!");
+		}
+	}
+
 	void createUniformBuffers() {
 		VkDeviceSize bufferSize = sizeof(UniformBufferObject);
 
@@ -3006,47 +3164,181 @@ private:
 		}
 	}
 
-	void createDescriptorPool() {
-		std::array<VkDescriptorPoolSize, 9> poolSizes{};
-		poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		poolSizes[0].descriptorCount = static_cast<uint32_t>(swapChainImages.size() * Scene.size());
-		poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		poolSizes[1].descriptorCount = static_cast<uint32_t>(swapChainImages.size() * Scene.size());
-		poolSizes[2].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		poolSizes[2].descriptorCount = static_cast<uint32_t>(swapChainImages.size() * Scene.size());
-		poolSizes[3].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		poolSizes[3].descriptorCount = static_cast<uint32_t>(swapChainImages.size());
-		poolSizes[4].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		poolSizes[4].descriptorCount = static_cast<uint32_t>(swapChainImages.size());
-		poolSizes[5].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		poolSizes[5].descriptorCount = static_cast<uint32_t>(swapChainImages.size());
-		poolSizes[6].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		poolSizes[6].descriptorCount = static_cast<uint32_t>(swapChainImages.size());
-		poolSizes[7].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		poolSizes[7].descriptorCount = static_cast<uint32_t>(swapChainImages.size());
-		poolSizes[8].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		poolSizes[8].descriptorCount = static_cast<uint32_t>(swapChainImages.size());
-
-		VkDescriptorPoolCreateInfo poolInfo{};
-		poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-		poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
-		poolInfo.pPoolSizes = poolSizes.data();
-		poolInfo.maxSets = static_cast<uint32_t>(swapChainImages.size() * (Scene.size() + 2));
-		
-		VkResult result = vkCreateDescriptorPool(device, &poolInfo, nullptr,
-									&descriptorPool);
-		if (result != VK_SUCCESS) {
-		 	PrintVkError(result);
-			throw std::runtime_error("failed to create descriptor pool!");
-		}
-	}
-	
 	void createDescriptorSets() {
 		createPhongDescriptorSets();
 		createSkyBoxDescriptorSets();
 		createTextDescriptorSets();
 	}
 	
+
+
+	//**************************************************************************
+	//SIMILAR STRUCTURE TO MYPROJECT.CPP
+
+	//here we load the models
+	void loadModels() {
+		Scene.resize(SceneToLoad.size());
+		int i = 0;
+
+		for (const auto& M : SceneToLoad) {
+			loadModelWithTexture(M, i);
+			i++;
+		}
+
+		loadSkyBox();
+		createTexts();
+
+	}
+	void loadModelWithTexture(const Model& M, int i) {
+		loadMesh(M.ObjFile, Scene[i].MD, phongAndSkyBoxVertices);
+
+
+		//MODIFICAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+		if (i == 0) {
+
+
+			for (int k = 0; k < Scene[i].MD.vertices.size() / 3; k++) {
+
+
+				vertex_vector_of_map.push_back(MyVertex(
+					SCALING_MAP * Scene[i].MD.vertices[k * 3 + 0],
+					SCALING_MAP * Scene[i].MD.vertices[k * 3 + 1],
+					SCALING_MAP * Scene[i].MD.vertices[k * 3 + 2]));
+
+
+			}
+
+			//vertex_vector_of_map.initVector();
+
+
+		}
+
+		createVertexBuffer(Scene[i].MD);
+		createIndexBuffer(Scene[i].MD);
+
+		createTextureImage(M.TextureFile, Scene[i].TD);
+		createTextureImageView(Scene[i].TD);
+		createTextureSampler(Scene[i].TD);
+	}
+	void loadMesh(const char* FName, ModelData& MD, VertexDescriptor& VD) {
+		tinyobj::attrib_t attrib;
+		std::vector<tinyobj::shape_t> shapes;
+		std::vector<tinyobj::material_t> materials;
+		std::string warn, err;
+
+
+
+
+		if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err,
+			(MODEL_PATH + FName).c_str())) {
+			throw std::runtime_error(warn + err);
+		}
+
+		MD.vertDesc = &VD;
+
+		std::cout << FName << "\n";
+
+		std::vector<float> vertex{};
+		vertex.resize(VD.size);
+
+
+
+
+		//		std::unordered_map<std::vector<float>, uint32_t> uniqueVertices{};
+		for (const auto& shape : shapes) {
+			for (const auto& index : shape.mesh.indices) {
+
+
+				vertex[VD.deltaPos + 0] = attrib.vertices[3 * index.vertex_index + 0];
+				vertex[VD.deltaPos + 1] = attrib.vertices[3 * index.vertex_index + 1];
+				vertex[VD.deltaPos + 2] = attrib.vertices[3 * index.vertex_index + 2];
+
+				if (/*FName != "title.obj" &&*/ /*FName != "target.obj" &&*/ FName != "Walls.obj") {
+					vertex[VD.deltaTexCoord + 0] = attrib.texcoords[2 * index.texcoord_index + 0];
+					vertex[VD.deltaTexCoord + 1] = 1 - attrib.texcoords[2 * index.texcoord_index + 1];
+					vertex[VD.deltaNormal + 0] = attrib.normals[3 * index.normal_index + 0];
+					vertex[VD.deltaNormal + 1] = attrib.normals[3 * index.normal_index + 1];
+					vertex[VD.deltaNormal + 2] = attrib.normals[3 * index.normal_index + 2];
+				}
+
+
+
+				//				if (uniqueVertices.count(vertex) == 0) {
+				int j = MD.vertices.size() / VD.size;
+				//					uniqueVertices[vertex] =
+				//							static_cast<uint32_t>(j);
+				int s = MD.vertices.size();
+				MD.vertices.resize(s + VD.size);
+				for (int k = 0; k < VD.size; k++) {
+					MD.vertices[s + k] = vertex[k];
+				}
+				/**/				MD.indices.push_back(j);
+				//				}
+
+				//				MD.indices.push_back(uniqueVertices[vertex]);
+			}
+		}
+
+		std::cout << FName << " -> V: " << MD.vertices.size()
+			<< ", I: " << MD.indices.size() << "\n";
+	}
+
+
+	// Here you can set the window parameters
+	void setWindowParameters() {
+		glfwInit();
+
+		glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+
+		window = glfwCreateWindow(WIDTH, HEIGHT, "3D MISSILE SIMULATOR", nullptr, nullptr);
+		glfwSetWindowUserPointer(window, this);
+		glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
+	}
+
+
+	// Descriptor Layouts [what will be passed to the shaders]
+	void createPhongDescriptorSetLayout() {
+		VkDescriptorSetLayoutBinding uboLayoutBinding{};
+		uboLayoutBinding.binding = 0;
+		uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		uboLayoutBinding.descriptorCount = 1;
+		uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+		uboLayoutBinding.pImmutableSamplers = nullptr;
+
+		VkDescriptorSetLayoutBinding samplerLayoutBinding{};
+		samplerLayoutBinding.binding = 1;
+		samplerLayoutBinding.descriptorType =
+			VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		samplerLayoutBinding.descriptorCount = 1;
+		samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+		samplerLayoutBinding.pImmutableSamplers = nullptr;
+
+		VkDescriptorSetLayoutBinding globalUboLayoutBinding{};
+		globalUboLayoutBinding.binding = 2;
+		globalUboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		globalUboLayoutBinding.descriptorCount = 1;
+		globalUboLayoutBinding.stageFlags = VK_SHADER_STAGE_ALL_GRAPHICS;
+		globalUboLayoutBinding.pImmutableSamplers = nullptr;
+
+		std::array<VkDescriptorSetLayoutBinding, 3> bindings =
+		{ uboLayoutBinding, samplerLayoutBinding, globalUboLayoutBinding };
+
+		VkDescriptorSetLayoutCreateInfo layoutInfo{};
+		layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+		layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
+		layoutInfo.pBindings = bindings.data();
+
+		VkResult result = vkCreateDescriptorSetLayout(device, &layoutInfo,
+			nullptr, &PhongDescriptorSetLayout);
+		if (result != VK_SUCCESS) {
+			PrintVkError(result);
+			throw std::runtime_error("failed to create descriptor set layout!");
+		}
+	}
+
+
+
+	//Here you can define the descriptor sets
 	void createPhongDescriptorSets() {
 		std::vector<VkDescriptorSetLayout> layouts(swapChainImages.size() * Scene.size(),
 												   PhongDescriptorSetLayout);
@@ -3116,113 +3408,13 @@ private:
 			}
 		}
 	}
+	
 
-	void createSkyBoxDescriptorSets() {
-		std::vector<VkDescriptorSetLayout> layouts(swapChainImages.size(),
-												   SkyBoxDescriptorSetLayout);
-		VkDescriptorSetAllocateInfo allocInfo{};
-		allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-		allocInfo.descriptorPool = descriptorPool;
-		allocInfo.descriptorSetCount = static_cast<uint32_t>(swapChainImages.size());
-		allocInfo.pSetLayouts = layouts.data();
 
-		SkyBoxDescriptorSets.resize(swapChainImages.size());
-		
-		VkResult result = vkAllocateDescriptorSets(device, &allocInfo,
-											SkyBoxDescriptorSets.data());
-		if (result != VK_SUCCESS) {
-			PrintVkError(result);
-			throw std::runtime_error("failed to allocate Skybox descriptor sets!");
-		}
-		
-		for (size_t k = 0; k < swapChainImages.size(); k++) {
-			VkDescriptorBufferInfo bufferInfo{};
-			bufferInfo.buffer = SkyBoxUniformBuffers[k];
-			bufferInfo.offset = 0;
-			bufferInfo.range = sizeof(UniformBufferObject);
-				
-			VkDescriptorImageInfo imageInfo{};
-			imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-			imageInfo.imageView = SkyBox.TD.textureImageView;
-			imageInfo.sampler = SkyBox.TD.textureSampler;
 
-			std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
-			descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-			descriptorWrites[0].dstSet = SkyBoxDescriptorSets[k];
-			descriptorWrites[0].dstBinding = 0;
-			descriptorWrites[0].dstArrayElement = 0;
-			descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-			descriptorWrites[0].descriptorCount =  1;
-			descriptorWrites[0].pBufferInfo = &bufferInfo;
-
-			descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-			descriptorWrites[1].dstSet = SkyBoxDescriptorSets[k];
-			descriptorWrites[1].dstBinding = 1;
-			descriptorWrites[1].dstArrayElement = 0;
-			descriptorWrites[1].descriptorType =
-										VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-			descriptorWrites[1].descriptorCount = 1;
-			descriptorWrites[1].pImageInfo = &imageInfo;
-
-			vkUpdateDescriptorSets(device,
-						static_cast<uint32_t>(descriptorWrites.size()),
-						descriptorWrites.data(), 0, nullptr);
-		}
-	}
-
-	void createTextDescriptorSets() {
-		std::vector<VkDescriptorSetLayout> layouts(swapChainImages.size(),
-												   TextDescriptorSetLayout);
-		VkDescriptorSetAllocateInfo allocInfo{};
-		allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-		allocInfo.descriptorPool = descriptorPool;
-		allocInfo.descriptorSetCount = static_cast<uint32_t>(swapChainImages.size());
-		allocInfo.pSetLayouts = layouts.data();
-
-		TextDescriptorSets.resize(swapChainImages.size());
-		
-		VkResult result = vkAllocateDescriptorSets(device, &allocInfo,
-											TextDescriptorSets.data());
-		if (result != VK_SUCCESS) {
-			PrintVkError(result);
-			throw std::runtime_error("failed to allocate Text descriptor sets!");
-		}
-		
-		for (size_t k = 0; k < swapChainImages.size(); k++) {
-			VkDescriptorBufferInfo bufferInfo{};
-			bufferInfo.buffer = TextUniformBuffers[k];
-			bufferInfo.offset = 0;
-			bufferInfo.range = sizeof(UniformBufferObject);
-				
-			VkDescriptorImageInfo imageInfo{};
-			imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-			imageInfo.imageView = SText.TD.textureImageView;
-			imageInfo.sampler = SText.TD.textureSampler;
-
-			std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
-			descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-			descriptorWrites[0].dstSet = TextDescriptorSets[k];
-			descriptorWrites[0].dstBinding = 0;
-			descriptorWrites[0].dstArrayElement = 0;
-			descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-			descriptorWrites[0].descriptorCount =  1;
-			descriptorWrites[0].pBufferInfo = &bufferInfo;
-
-			descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-			descriptorWrites[1].dstSet = TextDescriptorSets[k];
-			descriptorWrites[1].dstBinding = 1;
-			descriptorWrites[1].dstArrayElement = 0;
-			descriptorWrites[1].descriptorType =
-										VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-			descriptorWrites[1].descriptorCount = 1;
-			descriptorWrites[1].pImageInfo = &imageInfo;
-
-			vkUpdateDescriptorSets(device,
-						static_cast<uint32_t>(descriptorWrites.size()),
-						descriptorWrites.data(), 0, nullptr);
-		}
-	}
-
+	// Here it is the creation of the command buffer:
+	// You send to the GPU all the objects you want to draw,
+	// with their buffers and textures
     void createCommandBuffers() {
     	commandBuffers.resize(swapChainFramebuffers.size());
     	
@@ -3268,6 +3460,11 @@ private:
 			vkCmdBeginRenderPass(commandBuffers[i], &renderPassInfo,
 					VK_SUBPASS_CONTENTS_INLINE);
 
+
+
+			//********************************************************************************
+
+			//POPULATE BUFFER
 			vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS,
 					PhongPipeline);					
 			for(int j = 0; j < Scene.size(); j++) {
@@ -3341,6 +3538,13 @@ private:
 			vkCmdDrawIndexed(commandBuffers[i],
 						static_cast<uint32_t>(SceneText[curText].len), 1, static_cast<uint32_t>(SceneText[curText].start), 0, 0);
 			
+
+
+			//*************************************************************************************************
+
+
+
+
 			vkCmdEndRenderPass(commandBuffers[i]);
 			if (vkEndCommandBuffer(commandBuffers[i]) != VK_SUCCESS) {
 				throw std::runtime_error("failed to record command buffer!");
@@ -3348,218 +3552,22 @@ private:
 		}
 	}
     
-    void createSyncObjects() {
-    	imageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
-    	renderFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
-    	inFlightFences.resize(MAX_FRAMES_IN_FLIGHT);
-    	imagesInFlight.resize(swapChainImages.size(), VK_NULL_HANDLE);
-    	    	
-    	VkSemaphoreCreateInfo semaphoreInfo{};
-		semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-		
-		VkFenceCreateInfo fenceInfo{};
-		fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-		fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
-		
-		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-			VkResult result1 = vkCreateSemaphore(device, &semaphoreInfo, nullptr,
-								&imageAvailableSemaphores[i]);
-			VkResult result2 = vkCreateSemaphore(device, &semaphoreInfo, nullptr,
-								&renderFinishedSemaphores[i]);
-			VkResult result3 = vkCreateFence(device, &fenceInfo, nullptr,
-								&inFlightFences[i]);
-			if (result1 != VK_SUCCESS ||
-				result2 != VK_SUCCESS ||
-				result3 != VK_SUCCESS) {
-			 	PrintVkError(result1);
-			 	PrintVkError(result2);
-			 	PrintVkError(result3);
-				throw std::runtime_error("failed to create synchronization objects for a frame!!");
-			}
-		}
+
+	// Pipelines [Shader couples]
+	void createPhongPipeline() {
+		createPipeline("PhongVert.spv", "PhongFrag.spv",
+			PhongPipelineLayout, PhongPipeline,
+			PhongDescriptorSetLayout, VK_COMPARE_OP_LESS, VK_POLYGON_MODE_FILL,
+			1.0, VK_CULL_MODE_BACK_BIT, false, phongAndSkyBoxVertices);
+		createPipeline("PhongVert.spv", "PhongFrag.spv",
+			PhongWirePipelineLayout, PhongWirePipeline,
+			PhongDescriptorSetLayout, VK_COMPARE_OP_LESS, VK_POLYGON_MODE_LINE,
+			1.0, VK_CULL_MODE_NONE, false, phongAndSkyBoxVertices);
 	}
-    
-    void mainLoop() {
-        while (!glfwWindowShouldClose(window)) {
-            glfwPollEvents();
-            drawFrame();
-            
-            if(glfwGetKey(window, GLFW_KEY_ESCAPE)) {
-            	break;
-            }
-        }
-        
-        vkDeviceWaitIdle(device);
-    }
-    
-    void drawFrame() {
-		vkWaitForFences(device, 1, &inFlightFences[currentFrame],
-						VK_TRUE, UINT64_MAX);
-		
-		uint32_t imageIndex;
-		
-		VkResult result = vkAcquireNextImageKHR(device, swapChain, UINT64_MAX,
-				imageAvailableSemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
-
-		if (result == VK_ERROR_OUT_OF_DATE_KHR) {
-			recreateSwapChain();
-			return;
-		} else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
-			throw std::runtime_error("failed to acquire swap chain image!");
-		}
-
-		if (imagesInFlight[imageIndex] != VK_NULL_HANDLE) {
-			vkWaitForFences(device, 1, &imagesInFlight[imageIndex],
-							VK_TRUE, UINT64_MAX);
-		}
-		imagesInFlight[imageIndex] = inFlightFences[currentFrame];
-		
-		updateUniformBuffer(imageIndex);
-		
-		VkSubmitInfo submitInfo{};
-		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-		VkSemaphore waitSemaphores[] = {imageAvailableSemaphores[currentFrame]};
-		VkPipelineStageFlags waitStages[] =
-			{VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
-		submitInfo.waitSemaphoreCount = 1;
-		submitInfo.pWaitSemaphores = waitSemaphores;
-		submitInfo.pWaitDstStageMask = waitStages;
-		submitInfo.commandBufferCount = 1;
-		submitInfo.pCommandBuffers = &commandBuffers[imageIndex];
-		VkSemaphore signalSemaphores[] = {renderFinishedSemaphores[currentFrame]};
-		submitInfo.signalSemaphoreCount = 1;
-		submitInfo.pSignalSemaphores = signalSemaphores;
-		
-		vkResetFences(device, 1, &inFlightFences[currentFrame]);
-
-		if (vkQueueSubmit(graphicsQueue, 1, &submitInfo,
-				inFlightFences[currentFrame]) != VK_SUCCESS) {
-			throw std::runtime_error("failed to submit draw command buffer!");
-		}
-		
-		VkPresentInfoKHR presentInfo{};
-		presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-		presentInfo.waitSemaphoreCount = 1;
-		presentInfo.pWaitSemaphores = signalSemaphores;
-		
-		VkSwapchainKHR swapChains[] = {swapChain};
-		presentInfo.swapchainCount = 1;
-		presentInfo.pSwapchains = swapChains;
-		presentInfo.pImageIndices = &imageIndex;
-		presentInfo.pResults = nullptr; // Optional
-		
-		result = vkQueuePresentKHR(presentQueue, &presentInfo);
-
-		if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR ||
-			framebufferResized) {
-            framebufferResized = false;
-            recreateSwapChain();
-        } else if (result != VK_SUCCESS) {
-            throw std::runtime_error("failed to present swap chain image!");
-        }
-		
-		currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
-    }
 
 
-
-
-
-	void createNewText(std::string s, std::vector<SingleText>& text, int index_text) {
-
-		std::string delimiter = "\n";
-		std::vector<std::string> vector_tokens;
-
-		size_t pos = 0;
-		while ((pos = s.find(delimiter)) != std::string::npos) {
-			vector_tokens.push_back(s.substr(0, pos));
-			s.erase(0, pos + delimiter.length());
-		}
-
-
-		switch (vector_tokens.size()) {
-
-		case 0:
-			text[index_text] = { 1, {"", "", "", "", "", "", "", ""}, 0, 0 };
-
-			break;
-
-		case 1:
-			text[index_text] = { 1, {vector_tokens[0].c_str(), "", "", "", "", "", "", ""}, 0, 0 };
-			break;
-
-
-		case 2:
-			text[index_text] = { 2, {vector_tokens[0].c_str(), vector_tokens[1].c_str(), "", "", "", "", "", ""}, 0, 1 };
-			break;
-
-
-		case 3:
-			text[index_text] = { 3, {vector_tokens[0].c_str(), vector_tokens[1].c_str(), vector_tokens[2].c_str(), "", "", "", "", ""}, 0, 2 };
-			break;
-
-
-		case 4:
-			text[index_text] = { 4, {vector_tokens[0].c_str(), vector_tokens[1].c_str(), vector_tokens[2].c_str(), vector_tokens[3].c_str(), "", "", "", ""}, 0, 3 };
-			break;
-
-
-		case 5:
-			text[index_text] = { 5, {vector_tokens[0].c_str(), vector_tokens[1].c_str(), vector_tokens[2].c_str(), vector_tokens[3].c_str(), vector_tokens[4].c_str(), "", "", ""}, 0, 4 };
-			break;
-
-
-		case 6:
-			text[index_text] = { 6, {vector_tokens[0].c_str(), vector_tokens[1].c_str(), vector_tokens[2].c_str(), vector_tokens[3].c_str(), vector_tokens[4].c_str(), vector_tokens[5].c_str(), "", ""}, 0, 5 };
-			break;
-
-
-		case 7:
-			text[index_text] = { 7, {vector_tokens[0].c_str(), vector_tokens[1].c_str(), vector_tokens[2].c_str(), vector_tokens[3].c_str(), vector_tokens[4].c_str(), vector_tokens[5].c_str(), vector_tokens[6].c_str(), ""}, 0, 6 };
-			break;
-
-
-		case 8:
-			text[index_text] = { 8, {vector_tokens[0].c_str(), vector_tokens[1].c_str(), vector_tokens[2].c_str(), vector_tokens[3].c_str(), vector_tokens[4].c_str(), vector_tokens[5].c_str(), vector_tokens[6].c_str(), vector_tokens[7].c_str()}, 0, 7 };
-			break;
-
-
-
-		default:
-			text[index_text] = { 1, {"", "", "", "", "", "", "", ""}, 0, 0 };
-			break;
-
-
-
-
-
-
-		}
-
-
-		createTexts();
-
-
-
-	}
-	bool checkBoundaries(glm::vec3 vert_high_x_low_z, glm::vec3 vert_low_x_high_z, glm::vec3 point) {
-
-
-		if (point.x > vert_high_x_low_z.x || point.x < vert_low_x_high_z.x) {
-
-			return false;
-		}
-
-		if (point.z > vert_low_x_high_z.z || point.z < vert_high_x_low_z.z) {
-
-			return false;
-		}
-
-
-		return true;
-
-
-	}
+	// Here is where you update the uniforms.
+	// Very likely this will be where you will be writing the logic of your application.
 	void updateUniformBuffer(uint32_t currentImage) {
 
 
@@ -3632,9 +3640,6 @@ private:
 
 		//selettore per le luci
 		static glm::vec4 selector = glm::vec4(1, 0, 0, 0);
-
-
-
 
 
 
@@ -4468,91 +4473,120 @@ private:
 
 
 
+	//funzioni nostre
+	void createNewText(std::string s, std::vector<SingleText>& text, int index_text) {
+
+		std::string delimiter = "\n";
+		std::vector<std::string> vector_tokens;
+
+		size_t pos = 0;
+		while ((pos = s.find(delimiter)) != std::string::npos) {
+			vector_tokens.push_back(s.substr(0, pos));
+			s.erase(0, pos + delimiter.length());
+		}
+
+
+		switch (vector_tokens.size()) {
+
+		case 0:
+			text[index_text] = { 1, {"", "", "", "", "", "", "", ""}, 0, 0 };
+
+			break;
+
+		case 1:
+			text[index_text] = { 1, {vector_tokens[0].c_str(), "", "", "", "", "", "", ""}, 0, 0 };
+			break;
+
+
+		case 2:
+			text[index_text] = { 2, {vector_tokens[0].c_str(), vector_tokens[1].c_str(), "", "", "", "", "", ""}, 0, 1 };
+			break;
+
+
+		case 3:
+			text[index_text] = { 3, {vector_tokens[0].c_str(), vector_tokens[1].c_str(), vector_tokens[2].c_str(), "", "", "", "", ""}, 0, 2 };
+			break;
+
+
+		case 4:
+			text[index_text] = { 4, {vector_tokens[0].c_str(), vector_tokens[1].c_str(), vector_tokens[2].c_str(), vector_tokens[3].c_str(), "", "", "", ""}, 0, 3 };
+			break;
+
+
+		case 5:
+			text[index_text] = { 5, {vector_tokens[0].c_str(), vector_tokens[1].c_str(), vector_tokens[2].c_str(), vector_tokens[3].c_str(), vector_tokens[4].c_str(), "", "", ""}, 0, 4 };
+			break;
+
+
+		case 6:
+			text[index_text] = { 6, {vector_tokens[0].c_str(), vector_tokens[1].c_str(), vector_tokens[2].c_str(), vector_tokens[3].c_str(), vector_tokens[4].c_str(), vector_tokens[5].c_str(), "", ""}, 0, 5 };
+			break;
+
+
+		case 7:
+			text[index_text] = { 7, {vector_tokens[0].c_str(), vector_tokens[1].c_str(), vector_tokens[2].c_str(), vector_tokens[3].c_str(), vector_tokens[4].c_str(), vector_tokens[5].c_str(), vector_tokens[6].c_str(), ""}, 0, 6 };
+			break;
+
+
+		case 8:
+			text[index_text] = { 8, {vector_tokens[0].c_str(), vector_tokens[1].c_str(), vector_tokens[2].c_str(), vector_tokens[3].c_str(), vector_tokens[4].c_str(), vector_tokens[5].c_str(), vector_tokens[6].c_str(), vector_tokens[7].c_str()}, 0, 7 };
+			break;
+
+
+
+		default:
+			text[index_text] = { 1, {"", "", "", "", "", "", "", ""}, 0, 0 };
+			break;
+
+
+
+
+
+
+		}
+
+
+		createTexts();
+
+
+
+	}
+	bool checkBoundaries(glm::vec3 vert_high_x_low_z, glm::vec3 vert_low_x_high_z, glm::vec3 point) {
+
+
+		if (point.x > vert_high_x_low_z.x || point.x < vert_low_x_high_z.x) {
+
+			return false;
+		}
+
+		if (point.z > vert_low_x_high_z.z || point.z < vert_high_x_low_z.z) {
+
+			return false;
+		}
+
+
+		return true;
+
+
+	}
 	
 
+	//This is the main loop
+	void mainLoop() {
+		while (!glfwWindowShouldClose(window)) {
+			glfwPollEvents();
+			drawFrame();
 
-    void recreateSwapChain() {
-    	int width = 0, height = 0;
-		glfwGetFramebufferSize(window, &width, &height);
-		
-		while (width == 0 || height == 0) {
-			glfwGetFramebufferSize(window, &width, &height);
-			glfwWaitEvents();
+			if (glfwGetKey(window, GLFW_KEY_Z)) {
+				break;
+			}
 		}
 
 		vkDeviceWaitIdle(device);
-    	
-    	cleanupSwapChain();
-
-		createSwapChain();
-		createImageViews();
-		createRenderPass();
-		createPipelines();
-		createColorResources();
-		createDepthResources();
-		createFramebuffers();
-		createUniformBuffers();
-		createDescriptorPool();
-		createDescriptorSets();
-		createCommandBuffers();
-	}
-
-	void cleanupSwapChain() {
-    	vkDestroyImageView(device, colorImageView, nullptr);
-    	vkDestroyImage(device, colorImage, nullptr);
-    	vkFreeMemory(device, colorImageMemory, nullptr);
-    	
-		vkDestroyImageView(device, depthImageView, nullptr);
-		vkDestroyImage(device, depthImage, nullptr);
-		vkFreeMemory(device, depthImageMemory, nullptr);
-
-		for (size_t i = 0; i < swapChainFramebuffers.size(); i++) {
-			vkDestroyFramebuffer(device, swapChainFramebuffers[i], nullptr);
-		}
-		
-		vkFreeCommandBuffers(device, commandPool,
-				static_cast<uint32_t>(commandBuffers.size()), commandBuffers.data());
-
-		vkDestroyPipeline(device, PhongPipeline, nullptr);
-		vkDestroyPipeline(device, PhongWirePipeline, nullptr);
-		vkDestroyPipelineLayout(device, PhongPipelineLayout, nullptr);
-		vkDestroyPipelineLayout(device, PhongWirePipelineLayout, nullptr);
-
-		vkDestroyPipeline(device, SkyBoxPipeline, nullptr);
-		vkDestroyPipelineLayout(device, SkyBoxPipelineLayout, nullptr);
-
-		vkDestroyPipeline(device, TextPipeline, nullptr);
-		vkDestroyPipelineLayout(device, TextPipelineLayout, nullptr);
-
-		vkDestroyRenderPass(device, renderPass, nullptr);
-
-		for (size_t i = 0; i < swapChainImageViews.size(); i++){
-			vkDestroyImageView(device, swapChainImageViews[i], nullptr);
-		}
-		
-		vkDestroySwapchainKHR(device, swapChain, nullptr);
-		
-		for (size_t i = 0; i < swapChainImages.size() * Scene.size(); i++) {
-			vkDestroyBuffer(device, uniformBuffers[i], nullptr);
-			vkFreeMemory(device, uniformBuffersMemory[i], nullptr);
-		}
-		for (size_t i = 0; i < swapChainImages.size(); i++) {
-			vkDestroyBuffer(device, globalUniformBuffers[i], nullptr);
-			vkFreeMemory(device, globalUniformBuffersMemory[i], nullptr);
-		}		
-		for (size_t i = 0; i < swapChainImages.size(); i++) {
-			vkDestroyBuffer(device, SkyBoxUniformBuffers[i], nullptr);
-			vkFreeMemory(device, SkyBoxUniformBuffersMemory[i], nullptr);
-		}
-		for (size_t i = 0; i < swapChainImages.size(); i++) {
-			vkDestroyBuffer(device, TextUniformBuffers[i], nullptr);
-			vkFreeMemory(device, TextUniformBuffersMemory[i], nullptr);
-		}
-		
-		vkDestroyDescriptorPool(device, descriptorPool, nullptr);
 	}
 
 
+	// Here you destroy all the unnecessary things!
     void cleanup() {
     	cleanupSwapChain();
     	
@@ -4617,15 +4651,10 @@ private:
     }
 
 
+
+
+
 };
-
-
-
-
-
-
-
-
 
 
 
