@@ -4636,8 +4636,6 @@ int main() {
 	
 	ProjectCG app;
 
-	printf("\n\n\nUe %f", cos(glm::radians(0.0f)));
-
     try {
         app.run();
     } catch (const std::exception& e) {
