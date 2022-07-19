@@ -28,7 +28,6 @@
 #include <chrono>
 
 
-
 //macro luci
 #define ORENNAYAR 1
 #define PHONG 0
@@ -3655,8 +3654,8 @@ private:
 
 			glfwSetInputMode(window, GLFW_STICKY_MOUSE_BUTTONS, GLFW_TRUE);
 			if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
-				lookPitch += m_dy * ROT_SPEED / MOUSE_RES;
-				lookYaw += m_dx * ROT_SPEED / MOUSE_RES;
+				lookPitch -= m_dy * ROT_SPEED / MOUSE_RES;
+				lookYaw -= m_dx * ROT_SPEED / MOUSE_RES;
 			}
 
 
@@ -3731,6 +3730,7 @@ private:
 					//resetto la rotazione
 					lookYaw = 0;
 					lookPitch = 0;
+					lookRoll = 0;
 					RobotPos = glm::vec3(0, 3, 0);
 
 				}
@@ -4116,10 +4116,10 @@ private:
 				lookYaw -= deltaT * ROT_SPEED;
 			}
 			if (glfwGetKey(window, GLFW_KEY_UP)) {
-				lookPitch += deltaT * ROT_SPEED;
+				lookRoll += deltaT * ROT_SPEED;
 			}
 			if (glfwGetKey(window, GLFW_KEY_DOWN)) {
-				lookPitch -= deltaT * ROT_SPEED;
+				lookRoll -= deltaT * ROT_SPEED;
 			}
 
 
@@ -4177,6 +4177,7 @@ private:
 						rot_mat = glm::mat4(1);
 						lookYaw = 0;
 						lookPitch = 0;
+						lookRoll = 0;
 						debounce = time;
 
 					}
@@ -4293,7 +4294,7 @@ private:
 		if (machine_state == ThirdPersonRocketState) {
 
 			//eye center e up
-			CamMat = glm::rotate(glm::mat4(1.0), glm::radians(-lookRoll), glm::vec3(0, 0, 1)) * glm::lookAt(FollowerPos, RobotPos, glm::vec3(0, 1, 0));
+			CamMat = glm::lookAt(FollowerPos, RobotPos, glm::vec3(0, 1, 0));
 
 
 		}
@@ -4334,6 +4335,9 @@ private:
 			}
 
 			if (j == CHARACTER) {
+
+
+
 				glm::mat4 RobWM = glm::translate(glm::mat4(1), RobotPos) * rot_mat;
 				ubo.mMat = glm::rotate(RobWM, 1.5708f, glm::vec3(0, 1, 0)) * ubo.mMat;
 				FollowerTargetPos = RobWM * glm::translate(glm::mat4(1), FollowerDeltaTarget) *
@@ -4385,13 +4389,15 @@ private:
 
 
 			if (j == TARGET) {
-				const float followerFilterCoeff = 7.5;
+
+				//per avere un minimo di ritardo nella camera col movimento
+				//aggiunge INERZIA
+				const float followerFilterCoeff = 20.5;
 				float alpha = fmin(followerFilterCoeff * deltaT, 1.0);
 				FollowerPos = FollowerPos * (1.0f - alpha) + alpha * FollowerTargetPos;
-				ubo.mMat = glm::rotate(glm::mat4(1), lookRoll, glm::vec3(0, 0, 1)) * ubo.mMat;
-				ubo.mMat = glm::rotate(glm::mat4(1), lookPitch, glm::vec3(1, 0, 0)) * ubo.mMat;
-				ubo.mMat = glm::rotate(glm::mat4(1), lookYaw, glm::vec3(0, 1, 0)) * ubo.mMat;
-				ubo.mMat = glm::translate(glm::mat4(1), FollowerPos) * ubo.mMat;
+
+
+				ubo.mMat = glm::translate(glm::mat4(1), RobotPos) * ubo.mMat;
 				
 				
 				if (machine_state != SelectPositionsState) {
@@ -4629,6 +4635,8 @@ int main() {
     
 	
 	ProjectCG app;
+
+	printf("\n\n\nUe %f", cos(glm::radians(0.0f)));
 
     try {
         app.run();
