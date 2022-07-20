@@ -3626,6 +3626,7 @@ private:
 
 		//per accendere e spegnere la luce
 		static bool isSpotlightOn = true;
+		static glm::vec4 color_intensity_spotlight = glm::vec4(1, 1, 1, 1);
 		
 		
 		static MachineState machine_state = TitleScreenState;
@@ -3692,6 +3693,39 @@ private:
 				if (time - debounce > 0.33) {
 
 					isSpotlightOn = !isSpotlightOn;
+
+					debounce = time;
+
+				}
+			}
+
+
+
+			//accendo e spengo la luce
+			if (glfwGetKey(window, GLFW_KEY_2)) {
+				if (time - debounce > 0.33) {
+
+					if (color_intensity_spotlight.x > 0.1 && color_intensity_spotlight.y > 0.1 && color_intensity_spotlight.z > 0.1) {
+						color_intensity_spotlight -= glm::vec4(0.1, 0.1, 0.1, 0);
+					}
+
+
+					debounce = time;
+
+				}
+			}
+
+
+
+			//accendo e spengo la luce
+			if (glfwGetKey(window, GLFW_KEY_3)) {
+				if (time - debounce > 0.33) {
+
+					if (color_intensity_spotlight.x < 1.0 && color_intensity_spotlight.y < 1.0 && color_intensity_spotlight.z < 1.0) {
+
+						color_intensity_spotlight += glm::vec4(0.1, 0.1, 0.1, 0);
+					}
+
 
 					debounce = time;
 
@@ -3975,7 +4009,7 @@ private:
 
 			}
 
-			
+
 
 
 			//printo informaizoni varie
@@ -4400,7 +4434,7 @@ private:
 
 				//per avere un minimo di ritardo nella camera col movimento
 				//aggiunge INERZIA
-				const float followerFilterCoeff = 8.5;
+				const float followerFilterCoeff = 7.5;
 				float alpha = fmin(followerFilterCoeff * deltaT, 1.0);
 				FollowerPos = FollowerPos * (1.0f - alpha) + alpha * FollowerTargetPos;
 
@@ -4447,7 +4481,7 @@ private:
 		gubo.eyePos = EyePos;
 
 		gubo.lightDir_directional = glm::vec3(cos(glm::radians(135.0f)), sin(glm::radians(135.0f)), 0.0f);
-		gubo.lightColor_directional = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
+		gubo.lightColor_directional = color_intensity_spotlight;
 
 		gubo.lightDir_spotlight = glm::vec3(0.0f, 1.0f, 0.0f);
 
