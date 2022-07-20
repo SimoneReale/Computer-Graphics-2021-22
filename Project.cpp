@@ -3614,7 +3614,7 @@ private:
 		static int index_point = 0;
 		static float a_of_parabola = -1;
 		static float delta_a_of_parabola = 0.025;
-		static int n_of_points_per_unit_of_measure = 100;
+		static int n_of_points_per_unit_of_measure = 300;
 		static float regularization_parabola_points = 1;
 		
 
@@ -3622,6 +3622,10 @@ private:
 		//parametri per la rotazione
 		static glm::vec3 axis_of_rotation = glm::vec3(0, 1, 0);
 		static glm::mat4 rot_mat = glm::mat4(1);
+
+
+		//per accendere e spegnere la luce
+		static bool isSpotlightOn = true;
 		
 		
 		static MachineState machine_state = TitleScreenState;
@@ -3680,6 +3684,20 @@ private:
 			}
 
 			
+
+
+
+			//accendo e spengo la luce
+			if (glfwGetKey(window, GLFW_KEY_L)) {
+				if (time - debounce > 0.33) {
+
+					isSpotlightOn = !isSpotlightOn;
+
+					debounce = time;
+
+				}
+			}
+
 
 
 
@@ -4382,7 +4400,7 @@ private:
 
 				//per avere un minimo di ritardo nella camera col movimento
 				//aggiunge INERZIA
-				const float followerFilterCoeff = 20.5;
+				const float followerFilterCoeff = 8.5;
 				float alpha = fmin(followerFilterCoeff * deltaT, 1.0);
 				FollowerPos = FollowerPos * (1.0f - alpha) + alpha * FollowerTargetPos;
 
@@ -4432,11 +4450,27 @@ private:
 		gubo.lightColor_directional = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
 
 		gubo.lightDir_spotlight = glm::vec3(0.0f, 1.0f, 0.0f);
-		gubo.lightColor_spotlight = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f);
+
+		if (isSpotlightOn) {
+
+			gubo.lightColor_spotlight = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f);
+
+		}
+		else {
+
+			gubo.lightColor_spotlight = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
+
+		}
+
+
+		
+		
 		gubo.lightPos_spotlight = glm::vec3(0.0434f, -20.0f, -0.17f);
 		gubo.coneInOutDecayExp_spotlight = glm::vec4(0.7f, 1.0f, 2.0f, 2.0f);
 		
-		gubo.selector = selector;
+
+		gubo.selector = glm::vec4(1, 0, 0, 0);
+
 
 		void* data;
 		vkMapMemory(device, globalUniformBuffersMemory[currentImage], 0,
